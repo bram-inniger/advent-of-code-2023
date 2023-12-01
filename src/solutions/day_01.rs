@@ -2,7 +2,7 @@ use std::str::FromStr;
 use regex::Regex;
 
 fn solve_1(document: Vec<String>) -> u32 {
-    let re = Regex::new(r"\d").unwrap();
+    let re = Regex::new(r"[1-9]").unwrap();
     let mut sum = 0;
 
     for line in document {
@@ -14,10 +14,36 @@ fn solve_1(document: Vec<String>) -> u32 {
             last: digits.last().unwrap().to_string(),
         };
 
-        sum += calibration.read_number();
+        sum += calibration.add_number();
     }
 
     sum
+}
+
+fn solve_2(document: Vec<String>) -> u32 {
+    let re = Regex::new(r"([1-9]|one|two|three|four|five|six|seven|eight|nine)").unwrap();
+    let re_rev = Regex::new(r"([1-9]|enin|thgie|neves|xis|evif|ruof|eerht|owt|eno)").unwrap();
+    let mut sum = 0;
+
+    for line in document {
+        let line_rev = reverse(line.as_str());
+
+        let first = re.find(line.as_str()).unwrap().as_str();
+        let last = reverse(re_rev.find(line_rev.as_str()).unwrap().as_str());
+
+        let calibration = Calibration {
+            first: first.to_string(),
+            last: last.to_string(),
+        };
+
+        sum += calibration.add_number();
+    }
+
+    sum
+}
+
+fn reverse(string: &str) -> String {
+    string.chars().rev().collect::<String>()
 }
 
 struct Calibration {
@@ -26,9 +52,24 @@ struct Calibration {
 }
 
 impl Calibration {
-    fn read_number(&self) -> u32 {
-        u32::from_str(&*self.first).unwrap() * 10 +
-            u32::from_str(&*self.last).unwrap()
+    fn add_number(&self) -> u32 {
+        Self::parse_number(self.first.as_str()) * 10 +
+            Self::parse_number(self.last.as_str())
+    }
+
+    fn parse_number(number: &str) -> u32 {
+        match number {
+            "one" => 1,
+            "two" => 2,
+            "three" => 3,
+            "four" => 4,
+            "five" => 5,
+            "six" => 6,
+            "seven" => 7,
+            "eight" => 8,
+            "nine" => 9,
+            other => u32::from_str(other).unwrap(),
+        }
     }
 }
 
@@ -57,5 +98,30 @@ mod tests {
         let input = util::read_inputs(1);
 
         assert_eq!(54_331, solve_1(input))
+    }
+
+    #[test]
+    fn day_01_part_02_sample() {
+        let sample = vec![
+            "two1nine",
+            "eightwothree",
+            "abcone2threexyz",
+            "xtwone3four",
+            "4nineeightseven2",
+            "zoneight234",
+            "7pqrstsixteen",
+        ]
+            .iter()
+            .map(|&s| s.to_string())
+            .collect();
+
+        assert_eq!(281, solve_2(sample))
+    }
+
+    #[test]
+    fn day_01_part_02_solution() {
+        let input = util::read_inputs(1);
+
+        assert_eq!(54_518, solve_2(input))
     }
 }
