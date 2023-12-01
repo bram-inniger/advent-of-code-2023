@@ -1,42 +1,32 @@
-use std::str::FromStr;
 use regex::Regex;
+use std::str::FromStr;
 
-fn solve_1(document: Vec<String>) -> u32 {
-    let re = Regex::new(r"[1-9]").unwrap();
-    let mut sum = 0;
+pub fn solve_1(document: Vec<String>) -> u32 {
+    let re = Regex::new(r"([1-9])").unwrap();
 
-    for line in document {
-        let digits: Vec<&str> = re.find_iter(&*line)
-            .map(|m| m.as_str())
-            .collect();
-        let calibration = Calibration {
-            first: digits.first().unwrap().to_string(),
-            last: digits.last().unwrap().to_string(),
-        };
-
-        sum += calibration.add_number();
-    }
-
-    sum
+    solve(&document, &re, &re)
 }
 
-fn solve_2(document: Vec<String>) -> u32 {
+pub fn solve_2(document: Vec<String>) -> u32 {
     let re = Regex::new(r"([1-9]|one|two|three|four|five|six|seven|eight|nine)").unwrap();
     let re_rev = Regex::new(r"([1-9]|enin|thgie|neves|xis|evif|ruof|eerht|owt|eno)").unwrap();
+
+    solve(&document, &re, &re_rev)
+}
+
+fn solve(document: &Vec<String>, re: &Regex, re_rev: &Regex) -> u32 {
     let mut sum = 0;
 
     for line in document {
         let line_rev = reverse(line.as_str());
 
         let first = re.find(line.as_str()).unwrap().as_str();
-        let last = reverse(re_rev.find(line_rev.as_str()).unwrap().as_str());
+        let string = reverse(re_rev.find(line_rev.as_str()).unwrap().as_str());
+        let last = string.as_str();
 
-        let calibration = Calibration {
-            first: first.to_string(),
-            last: last.to_string(),
-        };
+        let calibration = Calibration::new(first, last);
 
-        sum += calibration.add_number();
+        sum += calibration.number;
     }
 
     sum
@@ -47,14 +37,13 @@ fn reverse(string: &str) -> String {
 }
 
 struct Calibration {
-    first: String,
-    last: String,
+    number: u32,
 }
 
 impl Calibration {
-    fn add_number(&self) -> u32 {
-        Self::parse_number(self.first.as_str()) * 10 +
-            Self::parse_number(self.last.as_str())
+    fn new(first: &str, last: &str) -> Calibration {
+        let number = Self::parse_number(first) * 10 + Self::parse_number(last);
+        Calibration { number }
     }
 
     fn parse_number(number: &str) -> u32 {
@@ -75,17 +64,12 @@ impl Calibration {
 
 #[cfg(test)]
 mod tests {
-    use crate::util;
     use super::*;
+    use crate::util;
 
     #[test]
     fn day_01_part_01_sample() {
-        let sample = vec![
-            "1abc2",
-            "pqr3stu8vwx",
-            "a1b2c3d4e5f",
-            "treb7uchet",
-        ]
+        let sample = ["1abc2", "pqr3stu8vwx", "a1b2c3d4e5f", "treb7uchet"]
             .iter()
             .map(|&s| s.to_string())
             .collect();
@@ -102,7 +86,7 @@ mod tests {
 
     #[test]
     fn day_01_part_02_sample() {
-        let sample = vec![
+        let sample = [
             "two1nine",
             "eightwothree",
             "abcone2threexyz",
@@ -111,9 +95,9 @@ mod tests {
             "zoneight234",
             "7pqrstsixteen",
         ]
-            .iter()
-            .map(|&s| s.to_string())
-            .collect();
+        .iter()
+        .map(|&s| s.to_string())
+        .collect();
 
         assert_eq!(281, solve_2(sample))
     }
