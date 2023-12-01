@@ -14,7 +14,7 @@ The actual problem solutions (both parts, including tests) can be found under ["
 
     $ git clone git@github.com:bram-inniger/advent-of-code-2023.git
     $ cd advent-of-code-2023
-    $ cargo test --lib
+    $ cargo test
 
 ## License
 
