@@ -3,6 +3,21 @@ use std::cmp::max;
 use std::str::FromStr;
 
 pub fn solve_1(games: Vec<&str>) -> u32 {
+    parse_games(games)
+        .iter()
+        .filter(|g| g.is_possible())
+        .map(|g| g.id)
+        .sum()
+}
+
+pub fn solve_2(games: Vec<&str>) -> u32 {
+    parse_games(games)
+        .iter()
+        .map(|g| g.power())
+        .sum()
+}
+
+fn parse_games(games: Vec<&str>) -> Vec<Game> {
     let id_re = Regex::new(r"Game (?<id>\d+)").unwrap();
     let draw_re = Regex::new(r"(\d+ (?:red|green|blue))").unwrap();
 
@@ -46,13 +61,8 @@ pub fn solve_1(games: Vec<&str>) -> u32 {
     }
 
     game_summaries
-        .iter()
-        .filter(|g| g.is_possible())
-        .map(|g| g.id)
-        .sum()
 }
 
-#[derive(Debug)]
 struct Game {
     id: u32,
     max_red: u32,
@@ -63,6 +73,10 @@ struct Game {
 impl Game {
     fn is_possible(&self) -> bool {
         self.max_red <= 12 && self.max_green <= 13 && self.max_blue <= 14
+    }
+
+    fn power(&self) -> u32 {
+        self.max_red * self.max_green * self.max_blue
     }
 }
 
@@ -88,5 +102,25 @@ mod tests {
         let input = include_str!("../../inputs/day_02.txt").lines().collect();
 
         assert_eq!(2_632, solve_1(input))
+    }
+
+    #[test]
+    fn day_02_part_02_sample() {
+        let sample = vec![
+            "Game 1: 3 blue, 4 red; 1 red, 2 green, 6 blue; 2 green",
+            "Game 2: 1 blue, 2 green; 3 green, 4 blue, 1 red; 1 green, 1 blue",
+            "Game 3: 8 green, 6 blue, 20 red; 5 blue, 4 red, 13 green; 5 green, 1 red",
+            "Game 4: 1 green, 3 red, 6 blue; 3 green, 6 red; 3 green, 15 blue, 14 red",
+            "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green",
+        ];
+
+        assert_eq!(2_286, solve_2(sample))
+    }
+
+    #[test]
+    fn day_02_part_02_solution() {
+        let input = include_str!("../../inputs/day_02.txt").lines().collect();
+
+        assert_eq!(69_629, solve_2(input))
     }
 }
