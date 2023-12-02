@@ -11,10 +11,7 @@ pub fn solve_1(games: Vec<&str>) -> u32 {
 }
 
 pub fn solve_2(games: Vec<&str>) -> u32 {
-    parse_games(games)
-        .iter()
-        .map(|g| g.power())
-        .sum()
+    parse_games(games).iter().map(|g| g.power()).sum()
 }
 
 fn parse_games(games: Vec<&str>) -> Vec<Game> {
@@ -71,8 +68,14 @@ struct Game {
 }
 
 impl Game {
+    const MAX_RED: u32 = 12;
+    const MAX_GREEN: u32 = 13;
+    const MAX_BLUE: u32 = 14;
+
     fn is_possible(&self) -> bool {
-        self.max_red <= 12 && self.max_green <= 13 && self.max_blue <= 14
+        self.max_red <= Self::MAX_RED
+            && self.max_green <= Self::MAX_GREEN
+            && self.max_blue <= Self::MAX_BLUE
     }
 
     fn power(&self) -> u32 {
