@@ -97,14 +97,14 @@ mod tests {
             "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green",
         ];
 
-        assert_eq!(8, solve_1(sample))
+        assert_eq!(8, solve_1(sample));
     }
 
     #[test]
     fn day_02_part_01_solution() {
         let input = include_str!("../../inputs/day_02.txt").lines().collect();
 
-        assert_eq!(2_632, solve_1(input))
+        assert_eq!(2_632, solve_1(input));
     }
 
     #[test]
@@ -117,13 +117,13 @@ mod tests {
             "Game 5: 6 red, 1 blue, 3 green; 2 blue, 1 red, 2 green",
         ];
 
-        assert_eq!(2_286, solve_2(sample))
+        assert_eq!(2_286, solve_2(sample));
     }
 
     #[test]
     fn day_02_part_02_solution() {
         let input = include_str!("../../inputs/day_02.txt").lines().collect();
 
-        assert_eq!(69_629, solve_2(input))
+        assert_eq!(69_629, solve_2(input));
     }
 }

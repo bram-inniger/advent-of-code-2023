@@ -65,14 +65,14 @@ mod tests {
     fn day_01_part_01_sample() {
         let sample = vec!["1abc2", "pqr3stu8vwx", "a1b2c3d4e5f", "treb7uchet"];
 
-        assert_eq!(142, solve_1(sample))
+        assert_eq!(142, solve_1(sample));
     }
 
     #[test]
     fn day_01_part_01_solution() {
         let input = include_str!("../../inputs/day_01.txt").lines().collect();
 
-        assert_eq!(54_331, solve_1(input))
+        assert_eq!(54_331, solve_1(input));
     }
 
     #[test]
@@ -87,13 +87,13 @@ mod tests {
             "7pqrstsixteen",
         ];
 
-        assert_eq!(281, solve_2(sample))
+        assert_eq!(281, solve_2(sample));
     }
 
     #[test]
     fn day_01_part_02_solution() {
         let input = include_str!("../../inputs/day_01.txt").lines().collect();
 
-        assert_eq!(54_518, solve_2(input))
+        assert_eq!(54_518, solve_2(input));
     }
 }
