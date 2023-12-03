@@ -1,7 +1,16 @@
 [package]
 name = "advent-of-code-2023"
 version = "0.1.0"
+authors = ["bram-inniger"]
 edition = "2021"
+description = "Repository to store solutions for Advent of Code"
+readme = "README.md"
+homepage = "https://inniger.be"
+repository = "https://github.com/bram-inniger/advent-of-code-2023"
+license = " GPL-3.0-or-later"
+keywords = ["advent-of-code"]
+categories = ["algorithms", "data-structures", "mathematics"]
 
 [dependencies]
 regex = "1.10.2"
+itertools = "0.12.0"
