@@ -1,4 +1,3 @@
-// TODO get rid of the max usages
 use std::collections::HashSet;
 
 const BASE_10: u32 = 10;
@@ -18,12 +17,12 @@ pub fn solve_2(schematic: Vec<&str>) -> u32 {
     let numbers = extract_numbers(&schematic);
 
     (0..schematic.len())
-        .flat_map(|y| (0..schematic[0].len()).map(move |x| Coord { x, y }))
-        .filter(|c| schematic[c.y][c.x] == '*')
-        .map(|c| {
+        .flat_map(|y| (0..schematic[0].len()).map(move |x| (x, y)))
+        .filter(|(x, y)| schematic[*y][*x] == '*')
+        .map(|(x, y)| {
             numbers
                 .iter()
-                .filter(|n| n.is_adjacent_to(&c))
+                .filter(|n| n.is_adjacent_to(x as i32, y as i32))
                 .collect::<Vec<&Number>>()
         })
         .filter(|n| n.len() == 2)
@@ -36,9 +35,9 @@ fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
         reading_number: &mut bool,
         numbers: &mut Vec<Number<'a>>,
         schematic: &'a Vec<Vec<char>>,
-        x_s: usize,
-        x_e: usize,
-        y: usize,
+        x_s: i32,
+        x_e: i32,
+        y: i32,
     ) {
         if *reading_number {
             let number = Number::new(x_s, x_e, y, schematic);
@@ -47,8 +46,8 @@ fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
         }
     }
 
-    let max_x = schematic[0].len() - 1;
-    let max_y = schematic.len() - 1;
+    let max_x = schematic[0].len() as i32 - 1;
+    let max_y = schematic.len() as i32 - 1;
 
     let mut numbers: Vec<Number> = Vec::new();
 
@@ -62,11 +61,11 @@ fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
             schematic,
             start,
             max_x,
-            y.max(1) - 1,
+            y - 1,
         );
 
         for x in 0..=max_x {
-            if schematic[y][x].is_digit(BASE_10) {
+            if schematic[y as usize][x as usize].is_digit(BASE_10) {
                 if !reading_number {
                     reading_number = true;
                     start = x;
@@ -77,7 +76,7 @@ fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
                     &mut numbers,
                     schematic,
                     start,
-                    x.max(1) - 1,
+                    x - 1,
                     y,
                 );
             }
@@ -98,14 +97,14 @@ fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
 
 struct Number<'a> {
     value: u32,
-    x_s: usize,
-    x_e: usize,
-    y: usize,
+    x_s: i32,
+    x_e: i32,
+    y: i32,
     schematic: &'a Vec<Vec<char>>,
 }
 
 impl<'a> Number<'a> {
-    fn new(x_s: usize, x_e: usize, y: usize, schematic: &'a Vec<Vec<char>>) -> Number<'a> {
+    fn new(x_s: i32, x_e: i32, y: i32, schematic: &'a Vec<Vec<char>>) -> Number<'a> {
         fn value(x_s: usize, x_e: usize, y: usize, schematic: &[Vec<char>]) -> u32 {
             let mut value = 0;
 
@@ -121,7 +120,7 @@ impl<'a> Number<'a> {
         }
 
         Number {
-            value: value(x_s, x_e, y, schematic),
+            value: value(x_s as usize, x_e as usize, y as usize, schematic),
             x_s,
             x_e,
             y,
@@ -130,39 +129,21 @@ impl<'a> Number<'a> {
     }
 
     fn is_part(&self) -> bool {
-        let non_symbols = HashSet::from(['.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']);
+        let symbols = HashSet::from(['#', '$', '%', '&', '*', '+', '-', '/', '=', '@']);
         let empty: Vec<char> = Vec::new();
 
-        for x in (self.x_s.max(1) - 1)..=self.x_e + 1 {
-            for y in (self.y.max(1) - 1)..=self.y + 1 {
-                if let Some(c) = self.schematic.get(y).unwrap_or(&empty).get(x) {
-                    if !non_symbols.contains(c) {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        false
+        ((self.y - 1)..=self.y + 1)
+            .flat_map(|y| ((self.x_s - 1)..=self.x_e + 1).map(move |x| (x, y)))
+            .filter(|(x, y)| *x >= 0 && *y >= 0)
+            .map(|(x, y)| (x as usize, y as usize))
+            .filter_map(|(x, y)| self.schematic.get(y).unwrap_or(&empty).get(x))
+            .any(|c| symbols.contains(c))
     }
-
-    fn is_adjacent_to(&self, coord: &Coord) -> bool {
-        let y = self.y as i32;
-        let x_s = self.x_s as i32;
-        let x_e = self.x_e as i32;
-
-        let x_coord = coord.x as i32;
-        let y_coord = coord.y as i32;
-
-        (y - 1 == y_coord || y == y_coord || y + 1 == y_coord)
-            && x_coord >= x_s - 1
-            && x_coord <= x_e + 1
+    fn is_adjacent_to(&self, x_n: i32, y_n: i32) -> bool {
+        (self.y - 1 == y_n || self.y == y_n || self.y + 1 == y_n)
+            && x_n >= self.x_s - 1
+            && x_n <= self.x_e + 1
     }
-}
-
-struct Coord {
-    x: usize,
-    y: usize,
 }
 
 #[cfg(test)]
