@@ -4,9 +4,45 @@ const BASE_10: u32 = 10;
 
 pub fn solve_1(schematic: Vec<&str>) -> u32 {
     let schematic: Vec<Vec<char>> = schematic.iter().map(|s| s.chars().collect()).collect();
+
+    extract_numbers(&schematic)
+        .iter()
+        .filter(|n| n.is_part())
+        .map(|n| n.value)
+        .sum()
+}
+
+#[allow(clippy::needless_range_loop)]
+pub fn solve_2(schematic: Vec<&str>) -> u32 {
+    let schematic: Vec<Vec<char>> = schematic.iter().map(|s| s.chars().collect()).collect();
+    let numbers = extract_numbers(&schematic);
+
+    let mut sum = 0;
+
+    for x in 0..schematic[0].len() {
+        for y in 0..schematic.len() {
+            if schematic[y][x] == '*' {
+                let coord = Coord { x, y };
+                let adjacent: Vec<&Number> = numbers
+                    .iter()
+                    .filter(|n| n.is_adjacent_to(&coord))
+                    .collect();
+
+                if adjacent.len() == 2 {
+                    sum += adjacent[0].value * adjacent[1].value
+                }
+            }
+        }
+    }
+
+    sum
+}
+
+fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
     let max_x = schematic[0].len() - 1;
     let max_y = schematic.len() - 1;
-    let mut sum = 0;
+
+    let mut numbers: Vec<Number> = Vec::new();
 
     let mut reading_number = false;
     let mut start = 0;
@@ -16,11 +52,9 @@ pub fn solve_1(schematic: Vec<&str>) -> u32 {
             let number = Number::new(
                 Coord { x: start, y: y - 1 },
                 Coord { x: max_x, y: y - 1 },
-                &schematic,
+                schematic,
             );
-            if number.is_part() {
-                sum += number.value;
-            }
+            numbers.push(number);
         }
 
         reading_number = false;
@@ -33,10 +67,8 @@ pub fn solve_1(schematic: Vec<&str>) -> u32 {
                     start = x;
                 }
             } else if reading_number {
-                let number = Number::new(Coord { x: start, y }, Coord { x: x - 1, y }, &schematic);
-                if number.is_part() {
-                    sum += number.value;
-                }
+                let number = Number::new(Coord { x: start, y }, Coord { x: x - 1, y }, schematic);
+                numbers.push(number);
 
                 reading_number = false;
                 start = 0;
@@ -48,14 +80,12 @@ pub fn solve_1(schematic: Vec<&str>) -> u32 {
         let number = Number::new(
             Coord { x: start, y: max_y },
             Coord { x: max_x, y: max_y },
-            &schematic,
+            schematic,
         );
-        if number.is_part() {
-            sum += number.value;
-        }
+        numbers.push(number);
     }
 
-    sum
+    numbers
 }
 
 struct Number<'a> {
@@ -112,6 +142,19 @@ impl<'a> Number<'a> {
 
         false
     }
+
+    fn is_adjacent_to(&self, coord: &Coord) -> bool {
+        let y = self.start.y as i32;
+        let x_start = self.start.x as i32;
+        let x_end = self.end.x as i32;
+
+        let x_coord = coord.x as i32;
+        let y_coord = coord.y as i32;
+
+        (y - 1 == y_coord || y == y_coord || y + 1 == y_coord)
+            && x_coord >= x_start - 1
+            && x_coord <= x_end + 1
+    }
 }
 
 struct Coord {
@@ -146,5 +189,30 @@ mod tests {
         let input = include_str!("../../inputs/day_03.txt").lines().collect();
 
         assert_eq!(525_181, solve_1(input));
+    }
+
+    #[test]
+    fn day_03_part_02_sample() {
+        let sample = vec![
+            "467..114..",
+            "...*......",
+            "..35..633.",
+            "......#...",
+            "617*......",
+            ".....+.58.",
+            "..592.....",
+            "......755.",
+            "...$.*....",
+            ".664.598..",
+        ];
+
+        assert_eq!(467_835, solve_2(sample));
+    }
+
+    #[test]
+    fn day_03_part_02_solution() {
+        let input = include_str!("../../inputs/day_03.txt").lines().collect();
+
+        assert_eq!(84_289_137, solve_2(input));
     }
 }
