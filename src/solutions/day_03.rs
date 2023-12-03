@@ -12,30 +12,22 @@ pub fn solve_1(schematic: Vec<&str>) -> u32 {
         .sum()
 }
 
-#[allow(clippy::needless_range_loop)]
 pub fn solve_2(schematic: Vec<&str>) -> u32 {
     let schematic: Vec<Vec<char>> = schematic.iter().map(|s| s.chars().collect()).collect();
     let numbers = extract_numbers(&schematic);
 
-    let mut sum = 0;
-
-    for x in 0..schematic[0].len() {
-        for y in 0..schematic.len() {
-            if schematic[y][x] == '*' {
-                let coord = Coord { x, y };
-                let adjacent: Vec<&Number> = numbers
-                    .iter()
-                    .filter(|n| n.is_adjacent_to(&coord))
-                    .collect();
-
-                if adjacent.len() == 2 {
-                    sum += adjacent[0].value * adjacent[1].value
-                }
-            }
-        }
-    }
-
-    sum
+    (0..schematic.len())
+        .flat_map(|y| (0..schematic[0].len()).map(move |x| Coord { x, y }))
+        .filter(|c| schematic[c.y][c.x] == '*')
+        .map(|c| {
+            numbers
+                .iter()
+                .filter(|n| n.is_adjacent_to(&c))
+                .collect::<Vec<&Number>>()
+        })
+        .filter(|n| n.len() == 2)
+        .map(|n| n[0].value * n[1].value)
+        .sum()
 }
 
 fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
