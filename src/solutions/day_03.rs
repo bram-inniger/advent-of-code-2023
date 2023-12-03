@@ -1,3 +1,4 @@
+// TODO get rid of the max usages
 use std::collections::HashSet;
 
 const BASE_10: u32 = 10;
@@ -31,6 +32,21 @@ pub fn solve_2(schematic: Vec<&str>) -> u32 {
 }
 
 fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
+    fn push_number_if_reading<'a>(
+        reading_number: &mut bool,
+        numbers: &mut Vec<Number<'a>>,
+        schematic: &'a Vec<Vec<char>>,
+        x_s: usize,
+        x_e: usize,
+        y: usize,
+    ) {
+        if *reading_number {
+            let number = Number::new(x_s, x_e, y, schematic);
+            (*numbers).push(number);
+            *reading_number = false;
+        }
+    }
+
     let max_x = schematic[0].len() - 1;
     let max_y = schematic.len() - 1;
 
@@ -40,17 +56,14 @@ fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
     let mut start = 0;
 
     for y in 0..=max_y {
-        if reading_number {
-            let number = Number::new(
-                Coord { x: start, y: y - 1 },
-                Coord { x: max_x, y: y - 1 },
-                schematic,
-            );
-            numbers.push(number);
-        }
-
-        reading_number = false;
-        start = 0;
+        push_number_if_reading(
+            &mut reading_number,
+            &mut numbers,
+            schematic,
+            start,
+            max_x,
+            y.max(1) - 1,
+        );
 
         for x in 0..=max_x {
             if schematic[y][x].is_digit(BASE_10) {
@@ -58,62 +71,60 @@ fn extract_numbers(schematic: &Vec<Vec<char>>) -> Vec<Number> {
                     reading_number = true;
                     start = x;
                 }
-            } else if reading_number {
-                let number = Number::new(Coord { x: start, y }, Coord { x: x - 1, y }, schematic);
-                numbers.push(number);
-
-                reading_number = false;
-                start = 0;
+            } else {
+                push_number_if_reading(
+                    &mut reading_number,
+                    &mut numbers,
+                    schematic,
+                    start,
+                    x.max(1) - 1,
+                    y,
+                );
             }
         }
     }
 
-    if reading_number {
-        let number = Number::new(
-            Coord { x: start, y: max_y },
-            Coord { x: max_x, y: max_y },
-            schematic,
-        );
-        numbers.push(number);
-    }
+    push_number_if_reading(
+        &mut reading_number,
+        &mut numbers,
+        schematic,
+        start,
+        max_x,
+        max_y,
+    );
 
     numbers
 }
 
 struct Number<'a> {
     value: u32,
-    start: Coord,
-    end: Coord,
+    x_s: usize,
+    x_e: usize,
+    y: usize,
     schematic: &'a Vec<Vec<char>>,
 }
 
 impl<'a> Number<'a> {
-    fn new(start: Coord, end: Coord, schematic: &'a Vec<Vec<char>>) -> Number<'a> {
-        fn value(start: &Coord, end: &Coord, schematic: &[Vec<char>]) -> u32 {
-            let y = start.y;
+    fn new(x_s: usize, x_e: usize, y: usize, schematic: &'a Vec<Vec<char>>) -> Number<'a> {
+        fn value(x_s: usize, x_e: usize, y: usize, schematic: &[Vec<char>]) -> u32 {
             let mut value = 0;
 
-            for x in start.x..=end.x {
+            for x in x_s..=x_e {
                 value = value * 10 + schematic[y][x].to_digit(BASE_10).unwrap()
             }
 
             value
         }
 
-        if start.y != end.y {
-            panic!(
-                "The number is spanning across vertical lines: {} and {}",
-                start.y, end.y
-            );
-        }
-        if start.x > end.x {
-            panic!("The number's end {} is before the start {}", end.x, start.x)
+        if x_s > x_e {
+            panic!("The number's end {} is before the start {}", x_e, x_s)
         }
 
         Number {
-            value: value(&start, &end, schematic),
-            start,
-            end,
+            value: value(x_s, x_e, y, schematic),
+            x_s,
+            x_e,
+            y,
             schematic,
         }
     }
@@ -122,8 +133,8 @@ impl<'a> Number<'a> {
         let non_symbols = HashSet::from(['.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']);
         let empty: Vec<char> = Vec::new();
 
-        for x in (self.start.x.max(1) - 1)..=self.end.x + 1 {
-            for y in (self.start.y.max(1) - 1)..=self.start.y + 1 {
+        for x in (self.x_s.max(1) - 1)..=self.x_e + 1 {
+            for y in (self.y.max(1) - 1)..=self.y + 1 {
                 if let Some(c) = self.schematic.get(y).unwrap_or(&empty).get(x) {
                     if !non_symbols.contains(c) {
                         return true;
@@ -136,16 +147,16 @@ impl<'a> Number<'a> {
     }
 
     fn is_adjacent_to(&self, coord: &Coord) -> bool {
-        let y = self.start.y as i32;
-        let x_start = self.start.x as i32;
-        let x_end = self.end.x as i32;
+        let y = self.y as i32;
+        let x_s = self.x_s as i32;
+        let x_e = self.x_e as i32;
 
         let x_coord = coord.x as i32;
         let y_coord = coord.y as i32;
 
         (y - 1 == y_coord || y == y_coord || y + 1 == y_coord)
-            && x_coord >= x_start - 1
-            && x_coord <= x_end + 1
+            && x_coord >= x_s - 1
+            && x_coord <= x_e + 1
     }
 }
 
