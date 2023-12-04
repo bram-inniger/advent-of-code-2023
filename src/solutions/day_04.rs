@@ -1,5 +1,5 @@
 use regex::Regex;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::str::FromStr;
 
 pub fn solve_1(cards: Vec<&str>) -> u32 {
@@ -8,18 +8,19 @@ pub fn solve_1(cards: Vec<&str>) -> u32 {
 
 pub fn solve_2(cards: Vec<&str>) -> u32 {
     let cards = parse_cards(&cards);
-    let mut pile: HashMap<u32, u32> = cards.iter().map(|c| (c.card_id, 1)).collect();
+    let mut pile = vec![1; cards.len() + 1];
+    pile[0] = 0; // Sneaky way to 1-index the array
 
     for card in cards {
         let nr_matches = card.nr_matches();
-        let nr_copies = pile[&card.card_id];
+        let nr_copies = pile[card.card_id as usize];
 
         for card_id in (&card.card_id + 1)..(&card.card_id + 1 + nr_matches) {
-            *pile.get_mut(&card_id).unwrap() += nr_copies;
+            pile[card_id as usize] += nr_copies;
         }
     }
 
-    pile.values().sum()
+    pile.iter().sum()
 }
 
 fn parse_cards(cards: &[&str]) -> Vec<Card> {
