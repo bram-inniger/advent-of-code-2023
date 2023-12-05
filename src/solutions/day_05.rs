@@ -4,19 +4,16 @@ use std::ops::Range;
 use std::str::FromStr;
 
 pub fn solve_1(almanac: &str) -> u64 {
-    let almanac = Almanac::new(almanac);
-
-    almanac
-        .seeds
-        .iter()
-        .map(|e| almanac.map_to(e))
-        .min()
-        .unwrap()
+    solve(almanac, &Almanac::seeds_as_single_ranges)
 }
 
 pub fn solve_2(almanac: &str) -> u64 {
+    solve(almanac, &Almanac::seeds_as_ranges)
+}
+
+fn solve(almanac: &str, seeds_to_ranges: &dyn Fn(&Almanac) -> HashSet<Range<u64>>) -> u64 {
     let almanac = Almanac::new(almanac);
-    let mut ranges = almanac.seeds_as_ranges();
+    let mut ranges = seeds_to_ranges(&almanac);
 
     for category in almanac.categories {
         ranges = category.convert(&ranges)
@@ -57,14 +54,8 @@ impl Almanac {
         Almanac { seeds, categories }
     }
 
-    fn map_to(&self, element: &u64) -> u64 {
-        let mut location = *element;
-
-        for category in &self.categories {
-            location = category.map_to(&location)
-        }
-
-        location
+    fn seeds_as_single_ranges(&self) -> HashSet<Range<u64>> {
+        self.seeds.iter().map(|s| *s..*s + 1).collect()
     }
 
     fn seeds_as_ranges(&self) -> HashSet<Range<u64>> {
@@ -103,6 +94,12 @@ impl Category {
     fn convert_single(&self, range: &Range<u64>) -> HashSet<Range<u64>> {
         let mut converted_ranges = HashSet::new();
         let mut current = range.start;
+
+        // First case to account for is our range ending before the first mapping's start
+        let first_mapping_start = self.mappings.first().unwrap().source.start;
+        if range.end <= first_mapping_start {
+            converted_ranges.insert(range.start..range.end);
+        }
 
         for mapping in &self.mappings {
             let s_start = mapping.source.start;
@@ -143,18 +140,10 @@ impl Category {
         // Final case to account for is our range going beyond the last mapping's end
         let last_mapping_end = self.mappings.last().unwrap().source.end;
         if range.end > last_mapping_end {
-            converted_ranges.insert(last_mapping_end..range.end);
+            converted_ranges.insert(current..range.end);
         }
 
         converted_ranges
-    }
-
-    fn map_to(&self, element: &u64) -> u64 {
-        self.mappings
-            .iter()
-            .find(|&m| m.contains(element))
-            .map(|m| m.map_to(element))
-            .unwrap_or(*element)
     }
 }
 
@@ -170,14 +159,6 @@ impl Mapping {
             source: source_start..source_start + range_length,
             destination: destination_start..destination_start + range_length,
         }
-    }
-
-    fn contains(&self, element: &u64) -> bool {
-        self.source.contains(element)
-    }
-
-    fn map_to(&self, element: &u64) -> u64 {
-        element - self.source.start + self.destination.start
     }
 }
 
