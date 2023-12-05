@@ -31,34 +31,8 @@ fn parse_cards(cards: &[&str]) -> Vec<Card> {
 
     cards
         .iter()
-        .map(|card| parse_card(card, &re_card, &re_numbers))
+        .map(|card| Card::new(card, &re_card, &re_numbers))
         .collect()
-}
-
-fn parse_card(card: &str, re_card: &Regex, re_numbers: &Regex) -> Card {
-    let Some(caps) = re_card.captures(card) else {
-        panic!("Could not parse: {}", card);
-    };
-
-    let card_id = u32::from_str(&caps["card_id"]).unwrap();
-    let winning: HashSet<u32> = re_numbers
-        .find_iter(&caps["winning"])
-        .map(|m| m.as_str())
-        .map(u32::from_str)
-        .map(|r| r.unwrap())
-        .collect();
-    let having: Vec<u32> = re_numbers
-        .find_iter(&caps["having"])
-        .map(|m| m.as_str())
-        .map(u32::from_str)
-        .map(|r| r.unwrap())
-        .collect();
-
-    Card {
-        card_id,
-        winning,
-        having,
-    }
 }
 
 struct Card {
@@ -68,6 +42,32 @@ struct Card {
 }
 
 impl Card {
+    fn new(card: &str, re_card: &Regex, re_numbers: &Regex) -> Card {
+        let Some(caps) = re_card.captures(card) else {
+            panic!("Could not parse: {}", card);
+        };
+
+        let card_id = u32::from_str(&caps["card_id"]).unwrap();
+        let winning: HashSet<u32> = re_numbers
+            .find_iter(&caps["winning"])
+            .map(|m| m.as_str())
+            .map(u32::from_str)
+            .map(|r| r.unwrap())
+            .collect();
+        let having: Vec<u32> = re_numbers
+            .find_iter(&caps["having"])
+            .map(|m| m.as_str())
+            .map(u32::from_str)
+            .map(|r| r.unwrap())
+            .collect();
+
+        Card {
+            card_id,
+            winning,
+            having,
+        }
+    }
+
     fn score(&self) -> u32 {
         if Self::nr_matches(self) > 0 {
             2_u32.pow(Self::nr_matches(self) - 1)
