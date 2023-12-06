@@ -1,4 +1,4 @@
-use advent_of_code_2023::solutions::day_04::solve_2;
+use advent_of_code_2023::solutions::*;
 
 /// Binary to more easily benchmark solutions.
 ///
@@ -8,7 +8,7 @@ use advent_of_code_2023::solutions::day_04::solve_2;
 /// $ hyperfine --warmup 1000 --runs 1000 'target/release/bench'
 /// ```
 fn main() {
-    let input = include_str!("../../inputs/day_04.txt").lines().collect();
+    let input = include_str!("../../inputs/day_06.txt").lines().collect();
 
-    assert_eq!(12_263_631, solve_2(input));
+    assert_eq!(46_561_107, day_06::solve_2(input));
 }
