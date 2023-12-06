@@ -4,7 +4,7 @@ use std::str::FromStr;
 pub fn solve_1(races: Vec<&str>) -> u64 {
     parse_races_bad_kerning(races)
         .iter()
-        .map(|r| r.nr_wins())
+        .map(|r| r.nr_wins_closed_form())
         .product()
 }
 
@@ -55,13 +55,6 @@ struct Race {
 }
 
 impl Race {
-    fn nr_wins(&self) -> u64 {
-        (1..self.time)
-            .map(|speed| speed * (self.time - speed))
-            .filter(|&distance| distance > self.distance)
-            .count() as u64
-    }
-
     // The problem can be solved using a quadratic equation
     // The unknown (x) is how long to press
     // Knowns are the time available (time), and the distance to beat (dist)
@@ -79,6 +72,9 @@ impl Race {
     // => (-b +- sqrt(b * b - 4 * a * c)) / 2 * a
     //
     // The solution then becomes counting the number of elements in the range formed by the roots
+    // Special care is taken in both rounding the roots up to align the range AND adding a tiny
+    // bit to the first root, to fix the edge case of having a fully integer route
+    // The reason for it is because we solve roots for "... > 0" and not "... = 0"
     fn nr_wins_closed_form(&self) -> u64 {
         let a = -1.0;
         let b = self.time as f64;
@@ -86,10 +82,10 @@ impl Race {
 
         let d = b * b - 4.0 * a * c;
 
-        let root_1 = (-b + d.sqrt()) / -2.0;
+        let root_1 = (-b + d.sqrt()) / -2.0 + 0.0000001;
         let root_2 = (-b - d.sqrt()) / -2.0;
 
-        (root_2 - root_1) as u64
+        root_2.ceil() as u64 - root_1.ceil() as u64
     }
 }
 
