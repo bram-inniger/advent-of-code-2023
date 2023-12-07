@@ -66,29 +66,30 @@ impl<'a> Hand<'a> {
     }
 }
 
+#[rustfmt::skip]
 impl<'a> Type<'a> {
     fn new(hand: &'a str, joker: bool) -> Type {
         let hand = Self::resolve_jokers(hand, joker);
         let counts = Self::card_counts(&hand);
 
         match counts.len() {
-            1 => Self::_new(6, "Five of a kind"),
+            1 => Type { value: 6, _name: "Five of a kind" },
             2 => {
                 if counts.values().any(|&c| c == 4) {
-                    Self::_new(5, "Four of a kind")
+                    Type { value: 5, _name: "Four of a kind" }
                 } else {
-                    Self::_new(4, "Full house")
+                    Type { value: 4, _name: "Full house" }
                 }
-            }
+            },
             3 => {
                 if counts.values().any(|&c| c == 3) {
-                    Self::_new(3, "Three of a kind")
+                    Type { value: 3, _name: "Three of a kind" }
                 } else {
-                    Self::_new(2, "Two pair")
+                    Type { value: 2, _name: "Two pair" }
                 }
-            }
-            4 => Self::_new(1, "One Pair"),
-            5 => Self::_new(0, "High card"),
+            },
+            4 => Type { value: 1, _name: "One Pair" },
+            5 => Type { value: 0, _name: "High card" },
             _ => panic!("Invalid hand: {hand}"),
         }
     }
@@ -109,33 +110,29 @@ impl<'a> Type<'a> {
     }
 
     fn card_counts(hand: &str) -> HashMap<char, u32> {
-        hand.chars().fold(HashMap::new(), |mut acc, c| {
-            *acc.entry(c).or_insert(0) += 1;
-            acc
-        })
-    }
-
-    // This keeps the auto formatter happy without having to disable it for the block above
-    fn _new(value: u32, _name: &'a str) -> Type {
-        Type { value, _name }
+        hand
+            .chars()
+            .fold(HashMap::new(), |mut acc, c| {
+                *acc.entry(c).or_insert(0) += 1;
+                acc
+            })
     }
 }
 
 impl Rank {
-    fn new(rank: char, joker: bool) -> Rank {
-        match rank {
-            'A' => Self::_new(14, rank),
-            'K' => Self::_new(13, rank),
-            'Q' => Self::_new(12, rank),
-            'J' => Self::_new(if joker { 1 } else { 11 }, rank),
-            'T' => Self::_new(10, rank),
-            '2'..='9' => Self::_new(rank.to_digit(BASE_10).unwrap(), rank),
-            _ => panic!("Unsupported rank, cannot parse: {rank}"),
-        }
-    }
-
-    // This keeps the auto formatter happy without having to disable it for the block above
-    fn _new(value: u32, _name: char) -> Rank {
+    fn new(_name: char, joker: bool) -> Rank {
+        let value = match _name {
+            'A' => 14,
+            'K' => 13,
+            'Q' => 12,
+            'J' => match joker {
+                true => 1,
+                false => 11,
+            },
+            'T' => 10,
+            '2'..='9' => _name.to_digit(BASE_10).unwrap(),
+            _ => panic!("Unsupported rank, cannot parse: {_name}"),
+        };
         Rank { value, _name }
     }
 }
