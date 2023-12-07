@@ -3,7 +3,11 @@ use std::collections::HashMap;
 use std::str::FromStr;
 
 pub fn solve_1(hands: Vec<&str>) -> u64 {
-    Game::new(hands).score()
+    Game::new(hands, false).score()
+}
+
+pub fn solve_2(hands: Vec<&str>) -> u64 {
+    Game::new(hands, true).score()
 }
 
 #[derive(Debug)]
@@ -31,9 +35,9 @@ struct Rank {
 }
 
 impl<'a> Game<'a> {
-    fn new(hands: Vec<&str>) -> Game {
+    fn new(hands: Vec<&str>, joker: bool) -> Game {
         Game {
-            hands: hands.iter().map(|h| Hand::new(h)).collect(),
+            hands: hands.iter().map(|h| Hand::new(h, joker)).collect(),
         }
     }
 
@@ -49,72 +53,95 @@ impl<'a> Game<'a> {
 }
 
 impl<'a> Hand<'a> {
-    fn new(line: &str) -> Hand {
+    fn new(line: &str, joker: bool) -> Hand {
         let line: Vec<&str> = line.split(' ').collect();
 
         Hand {
-            h_type: Type::new(line[0]),
-            cards: line[0].chars().map(Rank::new).collect(),
+            h_type: Type::new(line[0], joker),
+            cards: line[0].chars().map(|r| Rank::new(r, joker)).collect(),
             bid: u64::from_str(line[1]).unwrap(),
         }
     }
 }
 
-#[rustfmt::skip]
 impl<'a> Type<'a> {
-    fn new(hand: &str) -> Type {
-        let counts: Vec<u64> = hand
-            .chars()
-            .fold(HashMap::new(), |mut acc, c| {
-                *acc.entry(c).or_insert(0) += 1;
-                acc
-            })
-            .values()
-            .cloned()
-            .collect();
+    fn new(hand: &'a str, joker: bool) -> Type {
+        let hand = Self::resolve_jokers(hand, joker);
+        let counts = Self::card_counts(&hand);
 
         match counts.len() {
-            1 => Type { value: 6, _name: "Five of a kind" },
+            1 => Self::_new(6, "Five of a kind"),
             2 => {
-                if counts.iter().any(|&c| c == 4) {
-                    Type { value: 5, _name: "Four of a kind" }
+                if counts.values().any(|&c| c == 4) {
+                    Self::_new(5, "Four of a kind")
                 } else {
-                    Type { value: 4, _name: "Full house" }
+                    Self::_new(4, "Full house")
                 }
             }
             3 => {
-                if counts.iter().any(|&c| c == 3) {
-                    Type { value: 3, _name: "Three of a kind" }
+                if counts.values().any(|&c| c == 3) {
+                    Self::_new(3, "Three of a kind")
                 } else {
-                    Type { value: 2, _name: "Two pair" }
+                    Self::_new(2, "Two pair")
                 }
             }
-            4 => Type { value: 1, _name: "One Pair" },
-            5 => Type { value: 0, _name: "High card" },
+            4 => Self::_new(1, "One Pair"),
+            5 => Self::_new(0, "High card"),
             _ => panic!("Invalid hand: {hand}"),
         }
+    }
+
+    fn resolve_jokers(hand: &'a str, joker: bool) -> String {
+        let hand_without_jokers = hand.replace('J', "");
+        let most_common_card = Self::card_counts(&hand_without_jokers)
+            .iter()
+            .max_by_key(|e| e.1)
+            .map(|e| *e.0)
+            .unwrap_or('A');
+
+        if joker {
+            hand.replace('J', most_common_card.to_string().as_str())
+        } else {
+            hand.to_string()
+        }
+    }
+
+    fn card_counts(hand: &str) -> HashMap<char, u64> {
+        hand.chars().fold(HashMap::new(), |mut acc, c| {
+            *acc.entry(c).or_insert(0) += 1;
+            acc
+        })
+    }
+
+    // This keeps the auto formatter happy without having to disable it for the block above
+    fn _new(value: u64, _name: &'a str) -> Type {
+        Type { value, _name }
     }
 }
 
 impl Rank {
-    #[rustfmt::skip]
-    fn new(rank: char) -> Rank {
+    fn new(rank: char, joker: bool) -> Rank {
         match rank {
-            'A' => Rank { value: 14, _name: rank },
-            'K' => Rank { value: 13, _name: rank },
-            'Q' => Rank { value: 12, _name: rank },
-            'J' => Rank { value: 11, _name: rank },
-            'T' => Rank { value: 10, _name: rank },
-            '9' => Rank { value: 9, _name: rank },
-            '8' => Rank { value: 8, _name: rank },
-            '7' => Rank { value: 7, _name: rank },
-            '6' => Rank { value: 6, _name: rank },
-            '5' => Rank { value: 5, _name: rank },
-            '4' => Rank { value: 4, _name: rank },
-            '3' => Rank { value: 3, _name: rank },
-            '2' => Rank { value: 2, _name: rank },
+            'A' => Self::_new(14, rank),
+            'K' => Self::_new(13, rank),
+            'Q' => Self::_new(12, rank),
+            'J' => Self::_new(if joker { 1 } else { 11 }, rank),
+            'T' => Self::_new(10, rank),
+            '9' => Self::_new(9, rank),
+            '8' => Self::_new(8, rank),
+            '7' => Self::_new(7, rank),
+            '6' => Self::_new(6, rank),
+            '5' => Self::_new(5, rank),
+            '4' => Self::_new(4, rank),
+            '3' => Self::_new(3, rank),
+            '2' => Self::_new(2, rank),
             _ => panic!("Unsupported rank, cannot parse: {rank}"),
         }
+    }
+
+    // This keeps the auto formatter happy without having to disable it for the block above
+    fn _new(value: u64, _name: char) -> Rank {
+        Rank { value, _name }
     }
 }
 
@@ -132,7 +159,7 @@ mod tests {
             "QQQJA 483",
         ];
 
-        assert_eq!(6440, solve_1(sample));
+        assert_eq!(6_440, solve_1(sample));
     }
 
     #[test]
@@ -140,5 +167,25 @@ mod tests {
         let input = include_str!("../../inputs/day_07.txt").lines().collect();
 
         assert_eq!(249_638_405, solve_1(input));
+    }
+
+    #[test]
+    fn day_07_part_02_sample() {
+        let sample = vec![
+            "32T3K 765",
+            "T55J5 684",
+            "KK677 28",
+            "KTJJT 220",
+            "QQQJA 483",
+        ];
+
+        assert_eq!(5_905, solve_2(sample));
+    }
+
+    #[test]
+    fn day_07_part_02_solution() {
+        let input = include_str!("../../inputs/day_07.txt").lines().collect();
+
+        assert_eq!(249_776_650, solve_2(input));
     }
 }
