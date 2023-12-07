@@ -2,11 +2,13 @@ use itertools::Itertools;
 use std::collections::HashMap;
 use std::str::FromStr;
 
-pub fn solve_1(hands: Vec<&str>) -> u64 {
+const BASE_10: u32 = 10;
+
+pub fn solve_1(hands: Vec<&str>) -> u32 {
     Game::new(hands, false).score()
 }
 
-pub fn solve_2(hands: Vec<&str>) -> u64 {
+pub fn solve_2(hands: Vec<&str>) -> u32 {
     Game::new(hands, true).score()
 }
 
@@ -19,18 +21,18 @@ struct Game<'a> {
 struct Hand<'a> {
     h_type: Type<'a>,
     cards: Vec<Rank>,
-    bid: u64,
+    bid: u32,
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 struct Type<'a> {
-    value: u64,
+    value: u32,
     _name: &'a str,
 }
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 struct Rank {
-    value: u64,
+    value: u32,
     _name: char,
 }
 
@@ -41,13 +43,13 @@ impl<'a> Game<'a> {
         }
     }
 
-    fn score(&self) -> u64 {
+    fn score(&self) -> u32 {
         self.hands
             .iter()
             .sorted()
             .map(|h| h.bid)
             .enumerate()
-            .map(|(rank, bid)| (rank as u64 + 1) * bid)
+            .map(|(rank, bid)| (rank as u32 + 1) * bid)
             .sum()
     }
 }
@@ -59,7 +61,7 @@ impl<'a> Hand<'a> {
         Hand {
             h_type: Type::new(line[0], joker),
             cards: line[0].chars().map(|r| Rank::new(r, joker)).collect(),
-            bid: u64::from_str(line[1]).unwrap(),
+            bid: u32::from_str(line[1]).unwrap(),
         }
     }
 }
@@ -106,7 +108,7 @@ impl<'a> Type<'a> {
         }
     }
 
-    fn card_counts(hand: &str) -> HashMap<char, u64> {
+    fn card_counts(hand: &str) -> HashMap<char, u32> {
         hand.chars().fold(HashMap::new(), |mut acc, c| {
             *acc.entry(c).or_insert(0) += 1;
             acc
@@ -114,7 +116,7 @@ impl<'a> Type<'a> {
     }
 
     // This keeps the auto formatter happy without having to disable it for the block above
-    fn _new(value: u64, _name: &'a str) -> Type {
+    fn _new(value: u32, _name: &'a str) -> Type {
         Type { value, _name }
     }
 }
@@ -127,20 +129,13 @@ impl Rank {
             'Q' => Self::_new(12, rank),
             'J' => Self::_new(if joker { 1 } else { 11 }, rank),
             'T' => Self::_new(10, rank),
-            '9' => Self::_new(9, rank),
-            '8' => Self::_new(8, rank),
-            '7' => Self::_new(7, rank),
-            '6' => Self::_new(6, rank),
-            '5' => Self::_new(5, rank),
-            '4' => Self::_new(4, rank),
-            '3' => Self::_new(3, rank),
-            '2' => Self::_new(2, rank),
+            '2'..='9' => Self::_new(rank.to_digit(BASE_10).unwrap(), rank),
             _ => panic!("Unsupported rank, cannot parse: {rank}"),
         }
     }
 
     // This keeps the auto formatter happy without having to disable it for the block above
-    fn _new(value: u64, _name: char) -> Rank {
+    fn _new(value: u32, _name: char) -> Rank {
         Rank { value, _name }
     }
 }
