@@ -1,5 +1,5 @@
-use regex::Regex;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
+use std::ops::{Index, Not};
 
 pub fn solve_1(map: Vec<&str>) -> u64 {
     solve(map, "AAA", "ZZZ")
@@ -10,44 +10,34 @@ pub fn solve_2(map: Vec<&str>) -> u64 {
 }
 
 pub fn solve(map: Vec<&str>, start_suffix: &str, end_suffix: &str) -> u64 {
-    let instructions: Vec<Direction> = map[0].chars().map(Direction::new).collect();
+    let instruction = Instruction::new(map[0]);
+    let graph = Graph::new(&map.iter().skip(2).cloned().collect::<Vec<&str>>());
 
-    let nodes = parse_nodes(map);
-    let nodes: HashMap<&str, (&str, &str)> = nodes
+    graph
+        .start_values()
         .iter()
-        .map(|(s, (l, r))| (s.as_str(), (l.as_str(), r.as_str())))
-        .collect();
-
-    nodes
-        .keys()
         .filter(|k| k.ends_with(start_suffix))
-        .map(|start| find_cycle_length(&instructions, &nodes, start, end_suffix))
+        .map(|start| find_cycle_length(&instruction, &graph, start, end_suffix))
         .fold(1, lcm)
 }
 
-fn find_cycle_length(
-    instructions: &Vec<Direction>,
-    nodes: &HashMap<&str, (&str, &str)>,
-    start: &str,
-    end_suffix: &str,
-) -> u64 {
+fn find_cycle_length(instr: &Instruction, graph: &Graph, start: &str, end: &str) -> u64 {
     let mut nr_steps = 0;
     let mut current = start;
 
-    while !current.ends_with(end_suffix) {
-        let direction = &instructions[nr_steps % instructions.len()];
-        current = match direction {
-            Direction::Left => &nodes[current].0,
-            Direction::Right => &nodes[current].1,
+    while current.ends_with(end).not() {
+        current = match instr[nr_steps] {
+            Direction::Left => graph.left(current),
+            Direction::Right => graph.right(current),
         };
         nr_steps += 1;
     }
 
-    nr_steps as u64
+    nr_steps
 }
 
 fn lcm(a: u64, b: u64) -> u64 {
-    a * b / gcd(a, b)
+    a / gcd(a, b) * b
 }
 
 fn gcd(a: u64, b: u64) -> u64 {
@@ -60,20 +50,25 @@ fn gcd(a: u64, b: u64) -> u64 {
     pair.0
 }
 
-fn parse_nodes(map: Vec<&str>) -> HashMap<String, (String, String)> {
-    let re = Regex::new(r"^(?<start>\w{3}) = \((?<left>\w{3}), (?<right>\w{3})\)$").unwrap();
+#[derive(Debug)]
+struct Instruction {
+    directions: Vec<Direction>,
+}
 
-    map.into_iter()
-        .skip(2)
-        .map(|n| {
-            let result = re.captures(n).unwrap();
-            let start = result["start"].to_string();
-            let left = result["left"].to_string();
-            let right = result["right"].to_string();
+impl Instruction {
+    fn new(instruction: &str) -> Instruction {
+        Instruction {
+            directions: instruction.chars().map(Direction::new).collect(),
+        }
+    }
+}
 
-            (start, (left, right))
-        })
-        .collect()
+impl Index<u64> for Instruction {
+    type Output = Direction;
+
+    fn index(&self, index: u64) -> &Self::Output {
+        &self.directions[(index as usize) % self.directions.len()]
+    }
 }
 
 #[derive(Debug)]
@@ -89,6 +84,40 @@ impl Direction {
             'R' => Direction::Right,
             _ => panic!("Invalid direction: {direction}"),
         }
+    }
+}
+
+#[derive(Debug)]
+struct Graph<'a> {
+    nodes: HashMap<&'a str, (&'a str, &'a str)>,
+}
+
+impl<'a> Graph<'a> {
+    fn new(map: &[&'a str]) -> Graph<'a> {
+        let nodes = map
+            .iter()
+            .map(|&n| {
+                let start = &n[0..3];
+                let left = &n[7..10];
+                let right = &n[12..15];
+
+                (start, (left, right))
+            })
+            .collect();
+
+        Graph { nodes }
+    }
+
+    fn start_values(&self) -> HashSet<&'a str> {
+        self.nodes.keys().copied().collect()
+    }
+
+    fn left(&self, node: &str) -> &'a str {
+        self.nodes[node].0
+    }
+
+    fn right(&self, node: &str) -> &'a str {
+        self.nodes[node].1
     }
 }
 
