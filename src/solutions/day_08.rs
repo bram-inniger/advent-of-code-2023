@@ -22,7 +22,7 @@ pub fn solve(map: Vec<&str>, start_suffix: &str, end_suffix: &str) -> u64 {
         .keys()
         .filter(|k| k.ends_with(start_suffix))
         .map(|start| find_cycle_length(&instructions, &nodes, start, end_suffix))
-        .fold(1, num::integer::lcm)
+        .fold(1, lcm)
 }
 
 fn find_cycle_length(
@@ -44,6 +44,20 @@ fn find_cycle_length(
     }
 
     nr_steps as u64
+}
+
+fn lcm(a: u64, b: u64) -> u64 {
+    a * b / gcd(a, b)
+}
+
+fn gcd(a: u64, b: u64) -> u64 {
+    let mut pair = (a, b);
+
+    while pair.1 > 0 {
+        pair = (pair.1, pair.0 % pair.1)
+    }
+
+    pair.0
 }
 
 fn parse_nodes(map: Vec<&str>) -> HashMap<String, (String, String)> {
