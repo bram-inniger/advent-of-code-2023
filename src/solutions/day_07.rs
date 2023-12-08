@@ -1,5 +1,4 @@
 use itertools::Itertools;
-use std::collections::HashMap;
 use std::str::FromStr;
 
 const BASE_10: u32 = 10;
@@ -70,7 +69,7 @@ impl<'a> Hand<'a> {
 impl<'a> Type<'a> {
     fn new(hand: &'a str, joker: bool) -> Type {
         let hand = Self::resolve_jokers(hand, joker);
-        let counts = Self::card_counts(&hand);
+        let counts = hand.chars().counts();
 
         match counts.len() {
             1 => Type { value: 6, _name: "Five of a kind" },
@@ -96,7 +95,9 @@ impl<'a> Type<'a> {
 
     fn resolve_jokers(hand: &'a str, joker: bool) -> String {
         let hand_without_jokers = hand.replace('J', "");
-        let most_common_card = Self::card_counts(&hand_without_jokers)
+        let most_common_card = hand_without_jokers
+            .chars()
+            .counts()
             .iter()
             .max_by_key(|e| e.1)
             .map(|e| *e.0)
@@ -107,15 +108,6 @@ impl<'a> Type<'a> {
         } else {
             hand.to_string()
         }
-    }
-
-    fn card_counts(hand: &str) -> HashMap<char, u32> {
-        hand
-            .chars()
-            .fold(HashMap::new(), |mut acc, c| {
-                *acc.entry(c).or_insert(0) += 1;
-                acc
-            })
     }
 }
 
