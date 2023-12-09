@@ -28,7 +28,7 @@ fn solve(document: &[&str], re: &Regex, re_rev: &Regex) -> u32 {
 }
 
 fn reverse(string: &str) -> String {
-    string.chars().rev().collect::<String>()
+    string.chars().rev().collect()
 }
 
 struct Calibration {

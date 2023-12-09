@@ -42,14 +42,14 @@ struct Mapping {
 
 impl Almanac {
     fn new(almanac: &str) -> Almanac {
-        let split: Vec<&str> = almanac.split("\n\n").collect();
+        let split: Vec<&_> = almanac.split("\n\n").collect();
 
-        let seeds: Vec<u64> = split[0]
+        let seeds: Vec<_> = split[0]
             .trim_start_matches("seeds: ")
             .split(' ')
             .flat_map(u64::from_str)
             .collect();
-        let categories: Vec<Category> = split.iter().skip(1).map(|&s| Category::new(s)).collect();
+        let categories: Vec<_> = split.iter().skip(1).map(|&s| Category::new(s)).collect();
 
         Almanac { seeds, categories }
     }
@@ -71,10 +71,10 @@ impl Almanac {
 
 impl Category {
     fn new(category: &str) -> Category {
-        let split: Vec<&str> = category.split('\n').collect();
+        let split: Vec<_> = category.split('\n').collect();
 
         let _name = split[0].trim_end_matches(" map:").to_string();
-        let mappings: Vec<Mapping> = split
+        let mappings: Vec<_> = split
             .iter()
             .skip(1)
             .map(|&s| Mapping::new(s))
@@ -149,7 +149,7 @@ impl Category {
 
 impl Mapping {
     fn new(mapping: &str) -> Mapping {
-        let split: Vec<u64> = mapping.split(' ').flat_map(u64::from_str).collect();
+        let split: Vec<_> = mapping.split(' ').flat_map(u64::from_str).collect();
 
         let destination_start = split[0];
         let source_start = split[1];
