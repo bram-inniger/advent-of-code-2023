@@ -1,5 +1,5 @@
+use itertools::Itertools;
 use regex::Regex;
-use std::cmp::max;
 use std::collections::HashMap;
 use std::str::FromStr;
 
@@ -46,11 +46,10 @@ impl Game {
                 let nr_to_colour: Vec<_> = colour_grab.split(' ').collect();
                 (nr_to_colour[1], u32::from_str(nr_to_colour[0]).unwrap())
             })
-            .fold(HashMap::new(), |mut acc, (key, value)| {
-                let entry = acc.entry(key).or_insert(0);
-                *entry = max(*entry, value);
-                acc
-            });
+            .into_group_map()
+            .iter()
+            .map(|(&k, v)| (k, *v.iter().max().unwrap()))
+            .collect();
 
         Game {
             id,
