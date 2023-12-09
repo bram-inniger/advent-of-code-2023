@@ -1,40 +1,37 @@
-use crate::solutions::day_09::Direction::{Future, Past};
 use std::str::FromStr;
 
-pub fn solve_1(histories: Vec<&str>) -> i64 {
-    solve(histories, Future)
+pub fn solve_1(histories: Vec<&str>) -> i32 {
+    solve(histories, Direction::Future)
 }
 
-pub fn solve_2(histories: Vec<&str>) -> i64 {
-    solve(histories, Past)
+pub fn solve_2(histories: Vec<&str>) -> i32 {
+    solve(histories, Direction::Past)
 }
 
-fn solve(histories: Vec<&str>, direction: Direction) -> i64 {
-    let mut prediction = 0;
+fn solve(histories: Vec<&str>, direction: Direction) -> i32 {
+    histories
+        .iter()
+        .map(|h| h.split(' ').flat_map(i32::from_str).collect())
+        .map(|h| predict(h, 0, &direction, 0))
+        .sum()
+}
 
-    for &history in histories.iter() {
-        let mut history: Vec<i64> = history.split(' ').flat_map(i64::from_str).collect();
-        let mut sequence = 0;
+fn predict(history: Vec<i32>, sequence: u32, direction: &Direction, prediction: i32) -> i32 {
+    if history.iter().all(|&h| h == 0) {
+        prediction
+    } else {
+        let prediction = prediction
+            + match direction {
+            Direction::Future => *history.last().unwrap(),
+            Direction::Past => *history.first().unwrap() * sign(sequence),
+            };
+        let sequence = sequence + 1;
+        let history: Vec<i32> = (1..history.len())
+            .map(|i| history[i] - history[i - 1])
+            .collect();
 
-        prediction += match direction {
-            Future => *history.last().unwrap(),
-            Past => *history.first().unwrap() * sign(sequence),
-        };
-
-        while history.iter().any(|h| *h != 0) {
-            history = (1..history.len())
-                .map(|i| history[i] - history[i - 1])
-                .collect();
-
-            sequence += 1;
-            prediction += match direction {
-                Future => *history.last().unwrap(),
-                Past => *history.first().unwrap() * sign(sequence),
-            }
-        }
+        predict(history, sequence, direction, prediction)
     }
-
-    prediction
 }
 
 enum Direction {
@@ -42,8 +39,8 @@ enum Direction {
     Past,
 }
 
-fn sign(iteration: usize) -> i64 {
-    (-1i64).pow(iteration as u32)
+fn sign(sequence: u32) -> i32 {
+    (-1i32).pow(sequence)
 }
 
 #[cfg(test)]
