@@ -1,3 +1,4 @@
+use chrono::Datelike;
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
@@ -7,12 +8,19 @@ use std::{env, process};
 
 /// Binary to scaffold code for a new Advent of Code day.
 ///
-/// How to run (will scaffold all code for "Day 07"):
+/// # How to run
+///
+/// This will scaffold all code for the day it is ran on:
+/// ```shell
+/// $ cargo run --bin scaffold
+/// ```
+///
+/// This will scaffold all code for "Day 07":
 /// ```shell
 /// $ cargo run --bin scaffold -- 7
 /// ```
 ///
-/// Or:
+/// Alternatively the binary can be built and called directly:
 /// ```shell
 /// $ cargo build --release
 /// $ ./target/release/scaffold 7
@@ -42,11 +50,11 @@ struct Config {
 
 impl Config {
     fn build(args: &[String]) -> Result<Config, &'static str> {
-        if args.len() != 2 {
-            return Err("expected exactly one argument");
-        }
-
-        let day = u8::from_str(&args[1]);
+        let day = if args.len() >= 2 {
+            u8::from_str(&args[1])
+        } else {
+            Ok(chrono::prelude::Utc::now().day() as u8)
+        };
         if day.is_err() {
             return Err("invalid day");
         }
