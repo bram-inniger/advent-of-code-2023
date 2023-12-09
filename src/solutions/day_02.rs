@@ -1,65 +1,22 @@
 use regex::Regex;
 use std::cmp::max;
+use std::collections::HashMap;
 use std::str::FromStr;
 
 pub fn solve_1(games: Vec<&str>) -> u32 {
-    parse_games(games)
+    games
         .iter()
+        .map(|g| Game::new(g))
         .filter(|g| g.is_possible())
         .map(|g| g.id)
         .sum()
 }
 
 pub fn solve_2(games: Vec<&str>) -> u32 {
-    parse_games(games).iter().map(|g| g.power()).sum()
+    games.iter().map(|g| Game::new(g)).map(|g| g.power()).sum()
 }
 
-fn parse_games(games: Vec<&str>) -> Vec<Game> {
-    let id_re = Regex::new(r"Game (?<id>\d+)").unwrap();
-    let draw_re = Regex::new(r"(\d+ (?:red|green|blue))").unwrap();
-
-    let mut game_summaries: Vec<Game> = Vec::new();
-
-    for game in games {
-        let id_captures = id_re.captures(game).unwrap();
-        let id = u32::from_str(&id_captures["id"]).unwrap();
-
-        let mut max_red = 0;
-        let mut max_green = 0;
-        let mut max_blue = 0;
-
-        for draw in draw_re.find_iter(game).map(|m| m.as_str()) {
-            match draw {
-                r if r.ends_with(" red") => {
-                    max_red = max(max_red, u32::from_str(r.trim_end_matches(" red")).unwrap())
-                }
-                g if g.ends_with(" green") => {
-                    max_green = max(
-                        max_green,
-                        u32::from_str(g.trim_end_matches(" green")).unwrap(),
-                    )
-                }
-                b if b.ends_with(" blue") => {
-                    max_blue = max(
-                        max_blue,
-                        u32::from_str(b.trim_end_matches(" blue")).unwrap(),
-                    )
-                }
-                no_match => panic!("Couldn't find any matches in: {}", no_match),
-            }
-        }
-
-        game_summaries.push(Game {
-            id,
-            max_red,
-            max_green,
-            max_blue,
-        })
-    }
-
-    game_summaries
-}
-
+#[derive(Debug)]
 struct Game {
     id: u32,
     max_red: u32,
@@ -71,6 +28,37 @@ impl Game {
     const MAX_RED: u32 = 12;
     const MAX_GREEN: u32 = 13;
     const MAX_BLUE: u32 = 14;
+
+    fn new(game: &str) -> Game {
+        let id = u32::from_str(
+            &Regex::new(r"Game (?<id>\d+)")
+                .unwrap()
+                .captures(game)
+                .unwrap()["id"],
+        )
+        .unwrap();
+
+        let max_draw: HashMap<_, _> = Regex::new(r"(\d+ (?:red|green|blue))")
+            .unwrap()
+            .find_iter(game)
+            .map(|m| m.as_str())
+            .map(|colour_grab| {
+                let nr_to_colour: Vec<_> = colour_grab.split(' ').collect();
+                (nr_to_colour[1], u32::from_str(nr_to_colour[0]).unwrap())
+            })
+            .fold(HashMap::new(), |mut acc, (key, value)| {
+                let entry = acc.entry(key).or_insert(0);
+                *entry = max(*entry, value);
+                acc
+            });
+
+        Game {
+            id,
+            max_red: *max_draw.get("red").unwrap_or(&0),
+            max_green: *max_draw.get("green").unwrap_or(&0),
+            max_blue: *max_draw.get("blue").unwrap_or(&0),
+        }
+    }
 
     fn is_possible(&self) -> bool {
         self.max_red <= Self::MAX_RED
