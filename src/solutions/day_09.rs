@@ -11,36 +11,31 @@ pub fn solve_2(histories: Vec<&str>) -> i32 {
 fn solve(histories: Vec<&str>, direction: Direction) -> i32 {
     histories
         .iter()
-        .map(|h| h.split(' ').flat_map(i32::from_str).collect())
-        .map(|h| predict(h, 0, &direction, 0))
+        .map(|h| h.split(' ').flat_map(i32::from_str))
+        .map(|h| match direction {
+            Direction::Future => h.collect(),
+            Direction::Past => h.rev().collect(),
+        })
+        .map(|h| predict(h, 0))
         .sum()
 }
 
-fn predict(history: Vec<i32>, sequence: u32, direction: &Direction, prediction: i32) -> i32 {
+fn predict(history: Vec<i32>, prediction: i32) -> i32 {
     if history.iter().all(|&h| h == 0) {
         prediction
     } else {
-        let prediction = prediction
-            + match direction {
-            Direction::Future => *history.last().unwrap(),
-            Direction::Past => *history.first().unwrap() * sign(sequence),
-            };
-        let sequence = sequence + 1;
-        let history: Vec<i32> = (1..history.len())
+        let prediction = prediction + history.last().unwrap();
+        let history = (1..history.len())
             .map(|i| history[i] - history[i - 1])
             .collect();
 
-        predict(history, sequence, direction, prediction)
+        predict(history, prediction)
     }
 }
 
 enum Direction {
     Future,
     Past,
-}
-
-fn sign(sequence: u32) -> i32 {
-    (-1i32).pow(sequence)
 }
 
 #[cfg(test)]
