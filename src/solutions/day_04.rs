@@ -48,13 +48,13 @@ impl Card {
         };
 
         let card_id = u32::from_str(&caps["card_id"]).unwrap();
-        let winning: HashSet<u32> = re_numbers
+        let winning: HashSet<_> = re_numbers
             .find_iter(&caps["winning"])
             .map(|m| m.as_str())
             .map(u32::from_str)
             .map(|r| r.unwrap())
             .collect();
-        let having: Vec<u32> = re_numbers
+        let having: Vec<_> = re_numbers
             .find_iter(&caps["having"])
             .map(|m| m.as_str())
             .map(u32::from_str)
@@ -69,10 +69,9 @@ impl Card {
     }
 
     fn score(&self) -> u32 {
-        if Self::nr_matches(self) > 0 {
-            2_u32.pow(Self::nr_matches(self) - 1)
-        } else {
-            0
+        match Self::nr_matches(self) > 0 {
+            true => 2_u32.pow(Self::nr_matches(self) - 1),
+            false => 0,
         }
     }
 

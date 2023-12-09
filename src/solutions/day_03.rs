@@ -13,7 +13,7 @@ pub fn solve_1(schematic: Vec<&str>) -> u32 {
 }
 
 pub fn solve_2(schematic: Vec<&str>) -> u32 {
-    let schematic: Vec<Vec<char>> = schematic.iter().map(|s| s.chars().collect()).collect();
+    let schematic: Vec<_> = schematic.iter().map(|s| s.chars().collect()).collect();
     let numbers = extract_numbers(&schematic);
 
     (0..schematic.len())
@@ -23,7 +23,7 @@ pub fn solve_2(schematic: Vec<&str>) -> u32 {
             numbers
                 .iter()
                 .filter(|n| n.is_adjacent_to(x as i32, y as i32))
-                .collect::<Vec<&Number>>()
+                .collect::<Vec<_>>()
         })
         .filter(|n| n.len() == 2)
         .map(|n| n[0].value * n[1].value)

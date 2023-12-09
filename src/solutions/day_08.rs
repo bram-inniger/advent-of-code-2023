@@ -104,7 +104,6 @@ impl<'a> Graph<'a> {
                 (start, (left, right))
             })
             .collect();
-
         Graph { nodes }
     }
 

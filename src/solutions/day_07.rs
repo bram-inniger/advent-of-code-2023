@@ -55,7 +55,7 @@ impl<'a> Game<'a> {
 
 impl<'a> Hand<'a> {
     fn new(line: &str, joker: bool) -> Hand {
-        let line: Vec<&str> = line.split(' ').collect();
+        let line: Vec<_> = line.split(' ').collect();
 
         Hand {
             h_type: Type::new(line[0], joker),

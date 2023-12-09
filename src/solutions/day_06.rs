@@ -18,12 +18,12 @@ pub fn solve_2(races: Vec<&str>) -> u64 {
 fn parse_races_bad_kerning(timings: Vec<&str>) -> Vec<Race> {
     let re = Regex::new(r"\d+").unwrap();
 
-    let times: Vec<u64> = re
+    let times: Vec<_> = re
         .find_iter(timings[0])
         .map(|m| m.as_str())
         .flat_map(u64::from_str)
         .collect();
-    let distances: Vec<u64> = re
+    let distances: Vec<_> = re
         .find_iter(timings[1])
         .map(|m| m.as_str())
         .flat_map(u64::from_str)
