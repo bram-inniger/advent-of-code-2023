@@ -1,12 +1,14 @@
+use std::collections::HashSet;
 use std::ops::Index;
 
-pub fn solve_1(maze: Vec<&str>) -> u32 {
-    Maze::new(maze).loop_length() / 2
+pub fn solve_1(maze: Vec<&str>) -> usize {
+    Maze::new(maze).pipe_loop.len() / 2
 }
 
 #[derive(Debug)]
 struct Maze {
     tiles: Vec<Vec<Tile>>,
+    pipe_loop: HashSet<(usize, usize)>,
 }
 
 impl Maze {
@@ -15,45 +17,50 @@ impl Maze {
             .iter()
             .map(|l| l.chars().map(Tile::new).collect())
             .collect();
-        Maze { tiles }
+        let pipe_loop = Self::find_loop(&tiles);
+
+        Maze { tiles, pipe_loop }
     }
 
-    fn loop_length(&self) -> u32 {
-        let start = Self::find_start(self);
+    fn find_loop(tiles: &Vec<Vec<Tile>>) -> HashSet<(usize, usize)> {
+        let start = Self::find_start(tiles);
+        let mut pipe_loop = HashSet::new();
+        pipe_loop.insert(start);
 
         let mut prev = start;
-        let mut current = Self::next(self, start, start);
-
-        let mut steps = 1;
+        let mut current = Self::next(tiles, start, start);
 
         while current != start {
-            let next = Self::next(self, prev, current);
+            pipe_loop.insert(current);
+            let next = Self::next(tiles, prev, current);
 
             prev = current;
             current = next;
-
-            steps += 1;
         }
 
-        steps
+        pipe_loop
     }
 
-    fn find_start(&self) -> (usize, usize) {
-        (0..self.tiles.len())
-            .flat_map(|y| (0..self.tiles[0].len()).map(move |x| (x, y)))
-            .find(|&(x, y)| matches!(self[(x, y)], Tile::Start))
+    fn find_start(tiles: &Vec<Vec<Tile>>) -> (usize, usize) {
+        (0..tiles.len())
+            .flat_map(|y| (0..tiles[0].len()).map(move |x| (x, y)))
+            .find(|&(x, y)| matches!(tiles[y][x], Tile::Start))
             .unwrap()
     }
 
-    fn next(&self, prev: (usize, usize), current: (usize, usize)) -> (usize, usize) {
-        *Self::neighbours(self, current)
+    fn next(
+        tiles: &Vec<Vec<Tile>>,
+        prev: (usize, usize),
+        current: (usize, usize),
+    ) -> (usize, usize) {
+        *Self::neighbours(tiles, current)
             .iter()
             .find(|&&n| n != prev)
             .unwrap()
     }
 
-    fn neighbours(&self, tile: (usize, usize)) -> Vec<(usize, usize)> {
-        match self[tile] {
+    fn neighbours(tiles: &Vec<Vec<Tile>>, tile: (usize, usize)) -> Vec<(usize, usize)> {
+        match tiles[tile.1][tile.0] {
             Tile::NorthSouth => vec![(tile.0, tile.1 - 1), (tile.0, tile.1 + 1)],
             Tile::EastWest => vec![(tile.0 + 1, tile.1), (tile.0 - 1, tile.1)],
             Tile::NorthEast => vec![(tile.0, tile.1 - 1), (tile.0 + 1, tile.1)],
@@ -61,44 +68,42 @@ impl Maze {
             Tile::SouthWest => vec![(tile.0, tile.1 + 1), (tile.0 - 1, tile.1)],
             Tile::SouthEast => vec![(tile.0, tile.1 + 1), (tile.0 + 1, tile.1)],
             Tile::Ground => vec![],
-            Tile::Start => Self::start_neighbours(self, tile),
+            Tile::Start => Self::start_neighbours(tiles, tile),
         }
     }
 
-    fn start_neighbours(&self, start: (usize, usize)) -> Vec<(usize, usize)> {
-        let height = self.tiles.len();
-        let width = self.tiles[0].len();
+    fn start_neighbours(tiles: &Vec<Vec<Tile>>, start: (usize, usize)) -> Vec<(usize, usize)> {
+        let height = tiles.len();
+        let width = tiles[0].len();
         let mut neighbours = Vec::new();
 
         if start.0 >= 1 {
-            if let Tile::EastWest | Tile::NorthEast | Tile::SouthEast =
-                &self[(start.0 - 1, start.1)]
+            if let Tile::EastWest | Tile::NorthEast | Tile::SouthEast = &tiles[start.1][start.0 - 1]
             {
-                neighbours.push((start.0 - 1, start.1))
+                neighbours.push((start.0 - 1, start.1));
             }
         }
 
         if start.1 >= 1 {
             if let Tile::NorthSouth | Tile::SouthWest | Tile::SouthEast =
-                &self[(start.0, start.1 - 1)]
+                &tiles[start.1 - 1][start.0]
             {
-                neighbours.push((start.0, start.1 - 1))
+                neighbours.push((start.0, start.1 - 1));
             }
         }
 
         if start.0 < width - 1 {
-            if let Tile::EastWest | Tile::NorthWest | Tile::SouthWest =
-                &self[(start.0 + 1, start.1)]
+            if let Tile::EastWest | Tile::NorthWest | Tile::SouthWest = &tiles[start.1][start.0 + 1]
             {
-                neighbours.push((start.0 + 1, start.1))
+                neighbours.push((start.0 + 1, start.1));
             }
         }
 
         if start.1 < height - 1 {
             if let Tile::NorthSouth | Tile::NorthEast | Tile::NorthWest =
-                &self[(start.0, start.1 + 1)]
+                &tiles[start.1 + 1][start.0]
             {
-                neighbours.push((start.0, start.1 + 1))
+                neighbours.push((start.0, start.1 + 1));
             }
         }
 
