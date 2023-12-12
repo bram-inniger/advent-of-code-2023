@@ -1,12 +1,12 @@
 use std::collections::HashSet;
-use std::ops::Index;
+use std::ops::{Index, Not};
 
 pub fn solve_1(maze: Vec<&str>) -> usize {
     Maze::new(maze).pipe_loop.len() / 2
 }
 
-pub fn solve_2(_maze: Vec<&str>) -> usize {
-    42
+pub fn solve_2(maze: Vec<&str>) -> usize {
+    Maze::new(maze).count_enclosed_tiles()
 }
 
 #[derive(Debug)]
@@ -113,6 +113,44 @@ impl Maze {
 
         neighbours
     }
+
+    fn count_enclosed_tiles(&self) -> usize {
+        let horizontal_starts: Vec<_> = (0..self.tiles[0].len()).map(|x| (x, 0usize)).collect();
+        let vertical_starts: Vec<_> = (1..self.tiles.len()).map(|y| (0usize, y)).collect();
+
+        horizontal_starts
+            .into_iter()
+            .chain(vertical_starts)
+            .map(|s| Self::diagonal_ray(self, s))
+            .sum()
+    }
+
+    fn diagonal_ray(&self, start: (usize, usize)) -> usize {
+        let mut inside = false;
+        let mut current = start;
+        let mut inside_points = 0;
+
+        let width = self.tiles[0].len();
+        let height = self.tiles.len();
+
+        while current.0 < width && current.1 < height {
+            let tile = &self[current];
+
+            if self.pipe_loop.contains(&current) {
+                // The diagonal line "grazes" these specific 2 pipes
+                // Because no crossing between outside/inside occurred, we simply ignore this tile
+                if matches!(tile, Tile::NorthEast).not() && matches!(tile, Tile::SouthWest).not() {
+                    inside = inside.not()
+                }
+            } else if inside {
+                inside_points += 1
+            }
+
+            current = (current.0 + 1, current.1 + 1);
+        }
+
+        inside_points
+    }
 }
 
 impl Index<(usize, usize)> for Maze {
@@ -174,7 +212,6 @@ mod tests {
         assert_eq!(7_107, solve_1(input));
     }
 
-    #[ignore]
     #[test]
     fn day_10_part_02_sample() {
         let sample = vec![
@@ -236,11 +273,10 @@ mod tests {
         assert_eq!(10, solve_2(sample));
     }
 
-    #[ignore]
     #[test]
     fn day_10_part_02_solution() {
         let input = include_str!("../../inputs/day_10.txt").lines().collect();
 
-        assert_eq!(0, solve_2(input));
+        assert_eq!(281, solve_2(input));
     }
 }
