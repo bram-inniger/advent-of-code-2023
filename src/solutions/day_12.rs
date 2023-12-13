@@ -1,22 +1,31 @@
 use itertools::Itertools;
+use std::collections::HashMap;
 use std::str::FromStr;
 
-pub fn solve_1(records: Vec<&str>) -> usize {
+pub fn solve_1(records: Vec<&str>) -> u64 {
+    solve(records, false)
+}
+
+pub fn solve_2(records: Vec<&str>) -> u64 {
+    solve(records, true)
+}
+
+fn solve(records: Vec<&str>, expand: bool) -> u64 {
     records
         .iter()
         .map(|&r| Record::new(r))
-        .map(|r| r.nr_arrangements())
+        .map(|r| r.nr_arrangements(expand))
         .sum()
 }
 
-#[derive(Debug, Eq, PartialEq, Clone)]
+#[derive(Debug, Eq, PartialEq, Clone, Hash)]
 struct Record {
     springs: Vec<Condition>,
     criteria: Vec<usize>,
 }
 
 impl Record {
-    fn new(record: &str) -> Record {
+    fn new(record: &str) -> Self {
         let split = record.split(' ').collect_vec();
         let springs = split[0]
             .chars()
@@ -32,15 +41,22 @@ impl Record {
             .map(|s| usize::from_str(s).unwrap())
             .collect();
 
-        Record { springs, criteria }
+        Self { springs, criteria }
     }
 
-    fn nr_arrangements(&self) -> usize {
-        Self::nr_arrangements_rec(self.clone())
+    fn nr_arrangements(self, expand: bool) -> u64 {
+        let mut memo = HashMap::new();
+        let record = if expand { self.expand() } else { self };
+
+        Self::nr_arrangements_rec(record, &mut memo)
     }
 
-    fn nr_arrangements_rec(self) -> usize {
-        let record = match Self::simplify(self) {
+    fn nr_arrangements_rec(self, memo: &mut HashMap<Record, u64>) -> u64 {
+        if let Some(v) = memo.get(&self) {
+            return *v;
+        }
+
+        let record = match Self::simplify(self.clone()) {
             Ok(r) => r,
             Err(RecordStatus::Valid) => return 1,
             Err(RecordStatus::Invalid) => return 0,
@@ -49,13 +65,18 @@ impl Record {
         let mut variant_operational = record.clone();
         variant_operational.springs[0] = Condition::Operational;
 
-        let mut variant_damaged = record;
+        let mut variant_damaged = record.clone();
         variant_damaged.springs[0] = Condition::Damaged;
 
-        Self::nr_arrangements_rec(variant_operational) + Self::nr_arrangements_rec(variant_damaged)
+        let nr_arrangements = Self::nr_arrangements_rec(variant_operational, memo)
+            + Self::nr_arrangements_rec(variant_damaged, memo);
+
+        memo.insert(self, nr_arrangements);
+
+        nr_arrangements
     }
 
-    fn simplify(self) -> Result<Record, RecordStatus> {
+    fn simplify(self) -> Result<Self, RecordStatus> {
         let Self {
             mut springs,
             mut criteria,
@@ -109,16 +130,29 @@ impl Record {
             }
         }
     }
+
+    fn expand(self) -> Self {
+        let Self {
+            springs: s,
+            criteria: c,
+        } = self;
+        let u = vec![Condition::Unknown];
+
+        let springs = [&s, &u, &s, &u, &s, &u, &s, &u, &s[..]].concat();
+        let criteria = [&c, &c, &c, &c, &c[..]].concat();
+
+        Self { springs, criteria }
+    }
 }
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 enum Condition {
     Operational,
     Damaged,
     Unknown,
 }
 
-#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 enum RecordStatus {
     Valid,
     Invalid,
@@ -147,5 +181,26 @@ mod tests {
         let input = include_str!("../../inputs/day_12.txt").lines().collect();
 
         assert_eq!(7_379, solve_1(input));
+    }
+
+    #[test]
+    fn day_12_part_02_sample() {
+        let sample = vec![
+            "???.### 1,1,3",
+            ".??..??...?##. 1,1,3",
+            "?#?#?#?#?#?#?#? 1,3,1,6",
+            "????.#...#... 4,1,1",
+            "????.######..#####. 1,6,5",
+            "?###???????? 3,2,1",
+        ];
+
+        assert_eq!(525_152, solve_2(sample));
+    }
+
+    #[test]
+    fn day_12_part_02_solution() {
+        let input = include_str!("../../inputs/day_12.txt").lines().collect();
+
+        assert_eq!(7_732_028_747_925, solve_2(input));
     }
 }
