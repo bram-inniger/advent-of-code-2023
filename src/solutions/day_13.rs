@@ -1,10 +1,20 @@
 use itertools::Itertools;
 use std::cmp::min;
+use std::fmt;
+use std::fmt::Formatter;
 
 pub fn solve_1(ash: &str) -> usize {
+    solve(ash, &(|p| p.find_mirror()))
+}
+
+pub fn solve_2(ash: &str) -> usize {
+    solve(ash, &(|p| p.repair_smudge()))
+}
+
+fn solve(ash: &str, finder: &dyn Fn(Pattern) -> Mirror) -> usize {
     ash.split("\n\n")
         .map(Pattern::new)
-        .map(|p| p.find_mirror())
+        .map(finder)
         .map(|m| match m.alignment {
             Align::Horizontal => 100 * m.location,
             Align::Vertical => m.location,
@@ -12,11 +22,29 @@ pub fn solve_1(ash: &str) -> usize {
         .sum()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Pattern {
     tiles: Vec<Vec<Tile>>,
     width: usize,
     height: usize,
+}
+
+impl fmt::Display for Pattern {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        let pattern = self
+            .tiles
+            .iter()
+            .map(|l| {
+                l.iter()
+                    .map(|t| match t {
+                        Tile::Ash => '.',
+                        Tile::Rocks => '#',
+                    })
+                    .join("")
+            })
+            .join("\n");
+        write!(f, "{}", pattern)
+    }
 }
 
 impl Pattern {
@@ -44,25 +72,39 @@ impl Pattern {
     }
 
     fn find_mirror(&self) -> Mirror {
+        Self::single(Self::find_mirrors(self))
+    }
+
+    fn find_mirrors(&self) -> Vec<Mirror> {
+        let mut mirrors = Vec::new();
+
         for y in 1..self.height {
             if Self::is_reflection(self, y, &Align::Horizontal) {
-                return Mirror {
+                mirrors.push(Mirror {
                     location: y,
                     alignment: Align::Horizontal,
-                };
+                });
             }
         }
 
         for x in 1..self.width {
             if Self::is_reflection(self, x, &Align::Vertical) {
-                return Mirror {
+                mirrors.push(Mirror {
                     location: x,
                     alignment: Align::Vertical,
-                };
+                });
             }
         }
 
-        panic!("Couldn't find the mirror in pattern {:?}", self)
+        mirrors
+    }
+
+    fn single<T: Copy>(vec: Vec<T>) -> T {
+        if vec.len() != 1 {
+            panic!("Expected 1 element in Vec but received {}", vec.len());
+        }
+
+        vec[0]
     }
 
     fn is_reflection(&self, location: usize, alignment: &Align) -> bool {
@@ -80,21 +122,43 @@ impl Pattern {
             Align::Vertical => (0..self.height).all(|y| self.tiles[y][a] == self.tiles[y][b]),
         }
     }
+
+    fn repair_smudge(&self) -> Mirror {
+        let original = self.find_mirror();
+        let repaired = (0..self.height)
+            .flat_map(|y| (0..self.width).map(move |x| (x, y)))
+            .flat_map(|t| Self::smudge(self, t.0, t.1))
+            .unique()
+            .filter(|&m| m != original)
+            .collect_vec();
+
+        Self::single(repaired)
+    }
+
+    fn smudge(&self, x: usize, y: usize) -> Vec<Mirror> {
+        let mut smudged = self.clone();
+        smudged.tiles[y][x] = match smudged.tiles[y][x] {
+            Tile::Ash => Tile::Rocks,
+            Tile::Rocks => Tile::Ash,
+        };
+
+        smudged.find_mirrors()
+    }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 enum Tile {
     Ash,
     Rocks,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 struct Mirror {
     location: usize,
     alignment: Align,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone, Hash)]
 enum Align {
     Horizontal,
     Vertical,
@@ -130,5 +194,33 @@ mod tests {
         let input = include_str!("../../inputs/day_13.txt");
 
         assert_eq!(33_047, solve_1(input));
+    }
+
+    #[test]
+    fn day_13_part_02_sample() {
+        let sample = "#.##..##.\n\
+            ..#.##.#.\n\
+            ##......#\n\
+            ##......#\n\
+            ..#.##.#.\n\
+            ..##..##.\n\
+            #.#.##.#.\n\
+            \n\
+            #...##..#\n\
+            #....#..#\n\
+            ..##..###\n\
+            #####.##.\n\
+            #####.##.\n\
+            ..##..###\n\
+            #....#..#";
+
+        assert_eq!(400, solve_2(sample));
+    }
+
+    #[test]
+    fn day_13_part_02_solution() {
+        let input = include_str!("../../inputs/day_13.txt");
+
+        assert_eq!(28_806, solve_2(input));
     }
 }
