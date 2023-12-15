@@ -1,11 +1,12 @@
-use itertools::Itertools;
+use indexmap::IndexMap;
 use std::str::FromStr;
+use std::usize;
 
-pub fn solve_1(init_sequence: &str) -> u32 {
-    init_sequence.split(',').map(|s| hash(s) as u32).sum()
+pub fn solve_1(init_sequence: &str) -> usize {
+    init_sequence.split(',').map(|s| hash(s) as usize).sum()
 }
 
-pub fn solve_2(init_sequence: &str) -> u32 {
+pub fn solve_2(init_sequence: &str) -> usize {
     let mut facility = Facility::new();
 
     for step in init_sequence.split(',').map(Step::new) {
@@ -19,7 +20,7 @@ fn hash(step: &str) -> u8 {
     let mut value = 0;
 
     for x in step.chars() {
-        value += x as u32;
+        value += x as u16;
         value *= 17;
         value %= 256;
     }
@@ -29,13 +30,13 @@ fn hash(step: &str) -> u8 {
 
 #[derive(Debug)]
 struct Facility<'a> {
-    boxes: Vec<Vec<Lens<'a>>>,
+    boxes: Vec<IndexMap<&'a str, usize>>,
 }
 
 impl<'a> Facility<'a> {
     fn new() -> Facility<'a> {
-        let mut boxes: Vec<Vec<Lens<'a>>> = Vec::new();
-        (0..256).for_each(|_| boxes.push(Vec::new()));
+        let mut boxes: Vec<IndexMap<&'a str, usize>> = Vec::new();
+        (0..256).for_each(|_| boxes.push(IndexMap::new()));
 
         Facility { boxes }
     }
@@ -46,31 +47,27 @@ impl<'a> Facility<'a> {
             Step::Remove { label } => label,
         };
 
-        let lenses = &mut self.boxes[hash(label) as usize];
-        let existing_lens = lenses.iter().find_position(|&l| l.label == label);
-
         match step {
-            Step::Add { lens } => match existing_lens {
-                None => lenses.push(lens),
-                Some((idx, _)) => lenses[idx] = lens,
-            },
-            Step::Remove { label: _ } => match existing_lens {
-                None => {}
-                Some((idx, _)) => {
-                    lenses.remove(idx);
-                }
-            },
+            Step::Add { lens } => {
+                self.boxes[hash(label) as usize].insert(label, lens.focal_length);
+            }
+            Step::Remove { label: _ } => {
+                self.boxes[hash(label) as usize].shift_remove_entry(label);
+            }
         }
     }
 
-    fn focus_power(&self) -> u32 {
+    fn focus_power(&self) -> usize {
         self.boxes
             .iter()
             .enumerate()
             .flat_map(|(box_nr, lenses)| {
-                lenses.iter().enumerate().map(move |(lens_slot, lens)| {
-                    ((box_nr + 1) as u32) * ((lens_slot + 1) as u32) * (lens.focal_length as u32)
-                })
+                lenses
+                    .iter()
+                    .enumerate()
+                    .map(move |(lens_slot, (_, focal_length))| {
+                        (box_nr + 1) * (lens_slot + 1) * (focal_length)
+                    })
             })
             .sum()
     }
@@ -88,13 +85,12 @@ impl<'a> Step<'a> {
             let split: Vec<_> = step.split('=').collect();
             let lens = Lens {
                 label: split[0],
-                focal_length: u8::from_str(split[1]).unwrap(),
+                focal_length: usize::from_str(split[1]).unwrap(),
             };
             Step::Add { lens }
         } else if step.contains('-') {
-            Step::Remove {
-                label: step.trim_end_matches('-'),
-            }
+            let label = step.trim_end_matches('-');
+            Step::Remove { label }
         } else {
             panic!("Invalid step: {step}")
         }
@@ -104,7 +100,7 @@ impl<'a> Step<'a> {
 #[derive(Debug)]
 struct Lens<'a> {
     label: &'a str,
-    focal_length: u8,
+    focal_length: usize,
 }
 
 #[cfg(test)]
