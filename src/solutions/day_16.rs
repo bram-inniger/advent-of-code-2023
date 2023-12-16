@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rayon::prelude::*;
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::Not;
 
@@ -69,7 +70,7 @@ impl Layout {
             .collect_vec();
 
         [up_s, right_s, down_s, left_s]
-            .iter()
+            .par_iter()
             .flatten()
             .map(|&init| Self::bounce_light(self, init))
             .max()
