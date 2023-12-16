@@ -1,17 +1,22 @@
 use itertools::Itertools;
-use std::collections::HashSet;
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::Not;
 
 type Coord = (i16, i16);
 
 pub fn solve_1(layout: Vec<&str>) -> u32 {
-    Layout::new(layout).energized_count()
+    Layout::new(layout).energized_count_single()
+}
+
+pub fn solve_2(layout: Vec<&str>) -> u32 {
+    Layout::new(layout).energized_count_all()
 }
 
 #[derive(Debug)]
 struct Layout {
     grid: HashMap<Coord, Tile>,
+    height: i16,
+    width: i16,
 }
 
 impl Layout {
@@ -35,23 +40,47 @@ impl Layout {
                 })
             })
             .collect();
+        let height = layout.len() as i16;
+        let width = layout[0].len() as i16;
 
-        Layout { grid }
+        Layout {
+            grid,
+            height,
+            width,
+        }
     }
 
-    fn energized_count(&self) -> u32 {
-        Self::bounce_light(self)
+    fn energized_count_single(&self) -> u32 {
+        Self::bounce_light(self, ((0, 0), Direction::Right))
+    }
+
+    fn energized_count_all(&self) -> u32 {
+        let up_s = (0..self.width)
+            .map(|x| ((x, self.height - 1), Direction::Up))
+            .collect_vec();
+        let right_s = (0..self.height)
+            .map(|y| ((0, y), Direction::Right))
+            .collect_vec();
+        let down_s = (0..self.width)
+            .map(|x| ((x, 0), Direction::Down))
+            .collect_vec();
+        let left_s = (0..self.height)
+            .map(|y| ((self.width - 1, y), Direction::Left))
+            .collect_vec();
+
+        [up_s, right_s, down_s, left_s]
             .iter()
-            .map(|((x, y), _)| (x, y))
-            .unique()
-            .count() as u32
+            .flatten()
+            .map(|&init| Self::bounce_light(self, init))
+            .max()
+            .unwrap()
     }
 
-    fn bounce_light(&self) -> HashSet<(Coord, Direction)> {
+    fn bounce_light(&self, init: (Coord, Direction)) -> u32 {
         let mut seen = HashSet::new();
         let mut to_visit: VecDeque<(Coord, Direction)> = VecDeque::new();
 
-        to_visit.push_back(((0, 0), Direction::Right));
+        to_visit.push_back((init.0, init.1));
 
         while to_visit.is_empty().not() {
             let (coord, direction) = to_visit.pop_front().unwrap();
@@ -99,7 +128,7 @@ impl Layout {
             }
         }
 
-        seen
+        seen.iter().map(|((x, y), _)| (x, y)).unique().count() as u32
     }
 
     fn push_up(to_visit: &mut VecDeque<(Coord, Direction)>, coord: Coord) {
@@ -163,5 +192,30 @@ mod tests {
         let input = include_str!("../../inputs/day_16.txt").lines().collect();
 
         assert_eq!(8_116, solve_1(input));
+    }
+
+    #[test]
+    fn day_16_part_02_sample() {
+        let sample = vec![
+            r".|...\....",
+            r"|.-.\.....",
+            r".....|-...",
+            r"........|.",
+            r"..........",
+            r".........\",
+            r"..../.\\..",
+            r".-.-/..|..",
+            r".|....-|.\",
+            r"..//.|....",
+        ];
+
+        assert_eq!(51, solve_2(sample));
+    }
+
+    #[test]
+    fn day_16_part_02_solution() {
+        let input = include_str!("../../inputs/day_16.txt").lines().collect();
+
+        assert_eq!(8_383, solve_2(input));
     }
 }
