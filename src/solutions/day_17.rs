@@ -5,21 +5,21 @@ use std::ops::{Index, Not};
 
 const BASE_10: u32 = 10;
 
-type Coord = (i16, i16);
+type Coord = (u8, u8);
 
-pub fn solve_1(city: Vec<&str>) -> u32 {
+pub fn solve_1(city: Vec<&str>) -> u16 {
     City::new(city).shortest_path(false)
 }
 
-pub fn solve_2(city: Vec<&str>) -> u32 {
+pub fn solve_2(city: Vec<&str>) -> u16 {
     City::new(city).shortest_path(true)
 }
 
 #[derive(Debug)]
 struct City {
-    blocks: Vec<Vec<u32>>,
-    height: i16,
-    width: i16,
+    blocks: Vec<Vec<u8>>,
+    height: u8,
+    width: u8,
 }
 
 impl City {
@@ -28,12 +28,12 @@ impl City {
             .iter()
             .map(|&s| {
                 s.chars()
-                    .map(|c| c.to_digit(BASE_10).unwrap())
+                    .map(|c| c.to_digit(BASE_10).unwrap() as u8)
                     .collect_vec()
             })
             .collect_vec();
-        let height = blocks.len() as i16;
-        let width = blocks[0].len() as i16;
+        let height = blocks.len() as u8;
+        let width = blocks[0].len() as u8;
 
         City {
             blocks,
@@ -42,7 +42,7 @@ impl City {
         }
     }
 
-    fn shortest_path(&self, ultra: bool) -> u32 {
+    fn shortest_path(&self, ultra: bool) -> u16 {
         let mut dist = HashMap::new();
         let mut heap = BinaryHeap::new();
 
@@ -74,7 +74,7 @@ impl City {
                 return distance;
             }
 
-            if &distance > dist.get(&position).unwrap_or(&u32::MAX) {
+            if &distance > dist.get(&position).unwrap_or(&u16::MAX) {
                 continue;
             }
 
@@ -84,11 +84,11 @@ impl City {
             };
             for next_p in neighbours {
                 let next = State {
-                    distance: distance + self[next_p.coord],
+                    distance: distance + self[next_p.coord] as u16,
                     position: next_p,
                 };
 
-                if &next.distance < dist.get(&next_p).unwrap_or(&u32::MAX) {
+                if &next.distance < dist.get(&next_p).unwrap_or(&u16::MAX) {
                     heap.push(next);
                     dist.insert(next_p, next.distance);
                 }
@@ -100,16 +100,16 @@ impl City {
 }
 
 impl Index<Coord> for City {
-    type Output = u32;
+    type Output = u8;
 
-    fn index(&self, idx: Coord) -> &u32 {
+    fn index(&self, idx: Coord) -> &u8 {
         &self.blocks[idx.1 as usize][idx.0 as usize]
     }
 }
 
 #[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 struct State {
-    distance: u32,
+    distance: u16,
     position: Position,
 }
 
