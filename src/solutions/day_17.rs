@@ -1,18 +1,18 @@
 use itertools::Itertools;
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap};
-use std::ops::Index;
+use std::ops::{Index, Not};
 
 const BASE_10: u32 = 10;
 
 type Coord = (i16, i16);
 
 pub fn solve_1(city: Vec<&str>) -> u32 {
-    City::new(city).shortest_path(&Position::neighbours_normal)
+    City::new(city).shortest_path(false)
 }
 
 pub fn solve_2(city: Vec<&str>) -> u32 {
-    City::new(city).shortest_path(&Position::neighbours_ultra)
+    City::new(city).shortest_path(true)
 }
 
 #[derive(Debug)]
@@ -42,7 +42,7 @@ impl City {
         }
     }
 
-    fn shortest_path(&self, f_neighbours: &dyn Fn(&Position, &City) -> Vec<Position>) -> u32 {
+    fn shortest_path(&self, ultra: bool) -> u32 {
         let mut dist = HashMap::new();
         let mut heap = BinaryHeap::new();
 
@@ -70,7 +70,7 @@ impl City {
         });
 
         while let Some(State { distance, position }) = heap.pop() {
-            if position.coord == goal {
+            if position.coord == goal && (ultra.not() || position.steps >= 4) {
                 return distance;
             }
 
@@ -78,7 +78,11 @@ impl City {
                 continue;
             }
 
-            for next_p in f_neighbours(&position, self) {
+            let neighbours = match ultra {
+                true => position.neighbours_ultra(self),
+                false => position.neighbours_normal(self),
+            };
+            for next_p in neighbours {
                 let next = State {
                     distance: distance + self[next_p.coord],
                     position: next_p,
@@ -164,7 +168,48 @@ impl Position {
     }
 
     fn neighbours_ultra(&self, city: &City) -> Vec<Position> {
-        todo!()
+        let mut neighbours = Vec::new();
+
+        match self.direction {
+            Direction::Right => {
+                if self.steps < 10 {
+                    self.try_push_right(&mut neighbours, self.steps + 1, city);
+                }
+                if self.steps >= 4 {
+                    self.try_push_up(&mut neighbours, 1);
+                    self.try_push_down(&mut neighbours, 1, city);
+                }
+            }
+            Direction::Down => {
+                if self.steps < 10 {
+                    self.try_push_down(&mut neighbours, self.steps + 1, city);
+                }
+                if self.steps >= 4 {
+                    self.try_push_left(&mut neighbours, 1);
+                    self.try_push_right(&mut neighbours, 1, city);
+                }
+            }
+            Direction::Left => {
+                if self.steps < 10 {
+                    self.try_push_left(&mut neighbours, self.steps + 1);
+                }
+                if self.steps >= 4 {
+                    self.try_push_up(&mut neighbours, 1);
+                    self.try_push_down(&mut neighbours, 1, city);
+                }
+            }
+            Direction::Up => {
+                if self.steps < 10 {
+                    self.try_push_up(&mut neighbours, self.steps + 1);
+                }
+                if self.steps >= 4 {
+                    self.try_push_left(&mut neighbours, 1);
+                    self.try_push_right(&mut neighbours, 1, city);
+                }
+            }
+        }
+
+        neighbours
     }
 
     fn try_push_right(&self, neighbours: &mut Vec<Position>, steps: u8, city: &City) {
@@ -254,7 +299,6 @@ mod tests {
         assert_eq!(791, solve_1(input));
     }
 
-    #[ignore]
     #[test]
     fn day_17_part_02_sample() {
         let sample = vec![
@@ -286,11 +330,10 @@ mod tests {
         assert_eq!(71, solve_2(sample));
     }
 
-    #[ignore]
     #[test]
     fn day_17_part_02_solution() {
         let input = include_str!("../../inputs/day_17.txt").lines().collect();
 
-        assert_eq!(0, solve_2(input));
+        assert_eq!(900, solve_2(input));
     }
 }
