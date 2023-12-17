@@ -8,7 +8,7 @@ use advent_of_code_2023::solutions::*;
 /// $ hyperfine --warmup 1000 --runs 1000 'target/release/bench'
 /// ```
 fn main() {
-    let input = include_str!("../../inputs/day_16.txt").lines().collect();
+    let input = include_str!("../../inputs/day_17.txt").lines().collect();
 
-    assert_eq!(8_383, day_16::solve_2(input));
+    assert_eq!(791, day_17::solve_1(input));
 }
