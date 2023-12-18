@@ -1,6 +1,6 @@
 use itertools::Itertools;
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
+use radix_heap::RadixHeapMap;
+use rustc_hash::FxHashMap;
 use std::ops::{Index, Not};
 
 const BASE_10: u32 = 10;
@@ -43,8 +43,8 @@ impl City {
     }
 
     fn shortest_path(&self, ultra: bool) -> u16 {
-        let mut dist = HashMap::new();
-        let mut heap = BinaryHeap::new();
+        let mut dist = FxHashMap::default();
+        let mut heap:RadixHeapMap<std::cmp::Reverse<u16>,Position> = RadixHeapMap::new();
 
         let start_r = Position {
             coord: (0, 0),
@@ -60,21 +60,15 @@ impl City {
 
         dist.insert(start_r, 0);
         dist.insert(start_d, 0);
-        heap.push(State {
-            distance: 0,
-            position: start_r,
-        });
-        heap.push(State {
-            distance: 0,
-            position: start_d,
-        });
+        heap.push(std::cmp::Reverse(0), start_r);
+        heap.push(std::cmp::Reverse(0), start_d);
 
-        while let Some(State { distance, position }) = heap.pop() {
+        while let Some((distance, position)) = heap.pop() {
             if position.coord == goal && (ultra.not() || position.steps >= 4) {
-                return distance;
+                return distance.0;
             }
 
-            if &distance > dist.get(&position).unwrap_or(&u16::MAX) {
+            if &distance.0 > dist.get(&position).unwrap_or(&u16::MAX) {
                 continue;
             }
 
@@ -83,14 +77,11 @@ impl City {
                 false => position.neighbours_normal(self),
             };
             for next_p in neighbours {
-                let next = State {
-                    distance: distance + self[next_p.coord] as u16,
-                    position: next_p,
-                };
+                let next_d = distance.0 + self[next_p.coord] as u16;
 
-                if &next.distance < dist.get(&next_p).unwrap_or(&u16::MAX) {
-                    heap.push(next);
-                    dist.insert(next_p, next.distance);
+                if &next_d < dist.get(&next_p).unwrap_or(&u16::MAX) {
+                    heap.push(std::cmp::Reverse(next_d), next_p);
+                    dist.insert(next_p, next_d);
                 }
             }
         }
@@ -104,21 +95,6 @@ impl Index<Coord> for City {
 
     fn index(&self, idx: Coord) -> &u8 {
         &self.blocks[idx.1 as usize][idx.0 as usize]
-    }
-}
-
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
-struct State {
-    distance: u16,
-    position: Position,
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        other
-            .distance
-            .cmp(&self.distance)
-            .then_with(|| self.position.cmp(&other.position))
     }
 }
 
@@ -250,12 +226,6 @@ impl Position {
                 steps,
             })
         }
-    }
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
     }
 }
 
