@@ -1,17 +1,16 @@
 use itertools::Itertools;
-use regex::Regex;
 use std::collections::HashMap;
 use std::str::FromStr;
 
 pub fn solve_1(list: &str) -> u32 {
-    let split = list.split("\n\n").collect_vec();
+    let mut split = list.split("\n\n");
 
-    let workflows = split[0]
+    let workflows = split.next().unwrap()
         .split('\n')
         .map(Workflow::new)
         .map(|w| (w.name, w))
         .collect();
-    let parts = split[1].split('\n').map(Part::new).collect_vec();
+    let parts = split.next().unwrap().split('\n').map(Part::new).collect_vec();
 
     resolve_system(parts, workflows)
 }
@@ -66,12 +65,13 @@ struct Workflow<'a> {
 
 impl<'a> Workflow<'a> {
     fn new(workflow: &'a str) -> Workflow<'a> {
-        let re = Regex::new(r"^(?<name>\w+)\{(?<rules>.+)}$").unwrap();
-        let caps = re.captures(workflow).unwrap();
+        let split = workflow.find('{').unwrap();
 
-        let name = caps.get(1).unwrap().as_str();
-        let rules = caps.get(2).unwrap().as_str();
-        let rules = rules.split(',').map(Rule::new).collect_vec();
+        let name = &workflow[..split];
+        let rules = workflow[split + 1..workflow.len() - 1]
+            .split(',')
+            .map(Rule::new)
+            .collect_vec();
 
         Workflow { name, rules }
     }
@@ -89,15 +89,14 @@ enum Rule<'a> {
 
 impl<'a> Rule<'a> {
     fn new(rule: &'a str) -> Rule<'a> {
-        let re = Regex::new(r"^(?<category>[xmas])(?<sign>[<>])(?<value>\d+):(?<destination>\w+)$")
-            .unwrap();
-        match re.captures(rule) {
+        let split = rule.find(':');
+        match split {
             None => Rule::Unconditional { destination: rule },
-            Some(caps) => {
-                let category = &caps["category"];
-                let sign = &caps["sign"];
-                let value = u32::from_str(&caps["value"]).unwrap();
-                let destination = caps.get(4).unwrap().as_str();
+            Some(idx) => {
+                let category = &rule[..1];
+                let sign = &rule[1..2];
+                let value = u32::from_str(&rule[2..idx]).unwrap();
+                let destination = &rule[idx+1..];
 
                 let predicate: Box<dyn Fn(&Part) -> bool> = match category {
                     "x" => match sign {
@@ -142,14 +141,13 @@ struct Part {
 
 impl Part {
     fn new(part: &str) -> Part {
-        let re = Regex::new(r"^\{x=(\d+),m=(\d+),a=(\d+),s=(\d+)}$").unwrap();
-        let caps = re.captures(part).unwrap();
+        let split = &part[1..part.len()-1].split(',').collect_vec();
 
         Part {
-            x: u32::from_str(&caps[1]).unwrap(),
-            m: u32::from_str(&caps[2]).unwrap(),
-            a: u32::from_str(&caps[3]).unwrap(),
-            s: u32::from_str(&caps[4]).unwrap(),
+            x: u32::from_str(&split[0][2..]).unwrap(),
+            m: u32::from_str(&split[1][2..]).unwrap(),
+            a: u32::from_str(&split[2][2..]).unwrap(),
+            s: u32::from_str(&split[3][2..]).unwrap(),
         }
     }
 
@@ -185,7 +183,6 @@ mod tests {
         assert_eq!(19_114, solve_1(sample));
     }
 
-    #[ignore = "slow, need to increase performance"]
     #[test]
     fn day_19_part_01_solution() {
         let input = include_str!("../../inputs/day_19.txt");
