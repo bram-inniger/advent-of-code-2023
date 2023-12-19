@@ -1,24 +1,21 @@
+const DELTAS: [(i64, i64); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
+
 pub fn solve_2(plan: &str) -> i64 {
     let mut prev = (0, 0);
     let mut current = (0, 0);
     let mut perimeter = 0;
     let mut triangles_sum = 0;
 
-    for instruction in plan.lines() {
-        let steps = i64::from_str_radix(
-            &instruction[instruction.len() - 7..instruction.len() - 2],
-            16,
-        )
-        .unwrap();
+    for instr in plan.lines() {
+        let steps = i64::from_str_radix(&instr[instr.len() - 7..instr.len() - 2], 16).unwrap();
+        let direction = instr[instr.len() - 2..instr.len() - 1]
+            .chars()
+            .next()
+            .unwrap() as usize
+            - 48; // ASCII value of '0'
+        let (d_x, d_y) = DELTAS[direction];
 
-        match &instruction[instruction.len() - 2..instruction.len() - 1] {
-            "0" => current.1 -= steps,
-            "1" => current.0 += steps,
-            "2" => current.1 += steps,
-            "3" => current.0 -= steps,
-            _ => unreachable!(),
-        };
-
+        current = (current.0 + d_x * steps, current.1 + d_y * steps);
         perimeter += steps;
         triangles_sum += (prev.1 + current.1) * (prev.0 - current.0);
         prev = current;
