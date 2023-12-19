@@ -8,12 +8,8 @@ pub fn solve_2(plan: &str) -> i64 {
 
     for instr in plan.lines() {
         let steps = i64::from_str_radix(&instr[instr.len() - 7..instr.len() - 2], 16).unwrap();
-        let direction = instr[instr.len() - 2..instr.len() - 1]
-            .chars()
-            .next()
-            .unwrap() as usize
-            - 48; // ASCII value of '0'
-        let (d_x, d_y) = DELTAS[direction];
+        let direction = instr.as_bytes()[instr.len() - 2] - b'0';
+        let (d_x, d_y) = DELTAS[direction as usize];
 
         current = (current.0 + d_x * steps, current.1 + d_y * steps);
         perimeter += steps;
