@@ -38,13 +38,13 @@ fn parse_list(list: &str) -> (HashMap<&str, Workflow>, Vec<Part>) {
 
 fn find_a_ranges(workflows: HashMap<&str, Workflow>) -> Vec<RatingsRange> {
     let rd_start = RangeDestination {
-        range: RatingsRange {
+        r_range: RatingsRange {
             x: (1, 4000),
             m: (1, 4000),
             a: (1, 4000),
             s: (1, 4000),
         },
-        destination: "in",
+        dest: "in",
     };
 
     let mut a_ranges = Vec::new();
@@ -54,8 +54,8 @@ fn find_a_ranges(workflows: HashMap<&str, Workflow>) -> Vec<RatingsRange> {
     while queue.is_empty().not() {
         let rd = queue.pop_front().unwrap();
 
-        match rd.destination {
-            "A" => a_ranges.push(rd.range),
+        match rd.dest {
+            "A" => a_ranges.push(rd.r_range),
             "R" => {}
             _ => resolve_workflow(&rd, &workflows)
                 .iter()
@@ -66,14 +66,13 @@ fn find_a_ranges(workflows: HashMap<&str, Workflow>) -> Vec<RatingsRange> {
     a_ranges
 }
 
-// TODO, properly reference / dereference the range tuple to combat code duplication
 fn resolve_workflow<'a>(
     rd: &RangeDestination<'a>,
     workflows: &HashMap<&'a str, Workflow<'a>>,
 ) -> Vec<RangeDestination<'a>> {
-    let workflow = &workflows[rd.destination];
+    let workflow = &workflows[rd.dest];
     let mut rds = Vec::new();
-    let mut range = rd.range;
+    let mut r_range = rd.r_range;
 
     for rule in &workflow.rules {
         match rule {
@@ -81,161 +80,65 @@ fn resolve_workflow<'a>(
                 category,
                 sign,
                 value,
-                destination,
-            } => match category {
-                Category::X => match sign {
+                dest,
+            } => {
+                let mut r_range_split = r_range;
+                let range = borrow_range(category, &mut r_range);
+                let split_range = borrow_range(category, &mut r_range_split);
+
+                match sign {
                     Sign::Gt => {
-                        if &range.x.1 > value {
-                            if &range.x.0 > value {
-                                rds.push(RangeDestination { range, destination });
+                        if range.1 > *value {
+                            if range.0 > *value {
+                                rds.push(RangeDestination { r_range, dest });
                                 break;
                             } else {
-                                let mut range_split = range;
-                                range_split.x.0 = *value + 1;
+                                split_range.0 = *value + 1;
                                 rds.push(RangeDestination {
-                                    range: range_split,
-                                    destination,
+                                    r_range: r_range_split,
+                                    dest,
                                 });
-
-                                range.x.1 = *value;
+                                range.1 = *value;
                             }
                         };
                     }
                     Sign::Lt => {
-                        if &range.x.0 < value {
-                            if &range.x.1 < value {
-                                rds.push(RangeDestination { range, destination });
+                        if range.0 < *value {
+                            if range.1 < *value {
+                                rds.push(RangeDestination { r_range, dest });
                                 break;
                             } else {
-                                let mut range_split = range;
-                                range_split.x.1 = *value - 1;
+                                split_range.1 = *value - 1;
                                 rds.push(RangeDestination {
-                                    range: range_split,
-                                    destination,
+                                    r_range: r_range_split,
+                                    dest,
                                 });
-
-                                range.x.0 = *value;
+                                range.0 = *value;
                             }
                         };
                     }
-                },
-                Category::M => match sign {
-                    Sign::Gt => {
-                        if &range.m.1 > value {
-                            if &range.m.0 > value {
-                                rds.push(RangeDestination { range, destination });
-                                break;
-                            } else {
-                                let mut range_split = range;
-                                range_split.m.0 = *value + 1;
-                                rds.push(RangeDestination {
-                                    range: range_split,
-                                    destination,
-                                });
-
-                                range.m.1 = *value;
-                            }
-                        };
-                    }
-                    Sign::Lt => {
-                        if &range.m.0 < value {
-                            if &range.m.1 < value {
-                                rds.push(RangeDestination { range, destination });
-                                break;
-                            } else {
-                                let mut range_split = range;
-                                range_split.m.1 = *value - 1;
-                                rds.push(RangeDestination {
-                                    range: range_split,
-                                    destination,
-                                });
-
-                                range.m.0 = *value;
-                            }
-                        };
-                    }
-                },
-                Category::A => match sign {
-                    Sign::Gt => {
-                        if &range.a.1 > value {
-                            if &range.a.0 > value {
-                                rds.push(RangeDestination { range, destination });
-                                break;
-                            } else {
-                                let mut range_split = range;
-                                range_split.a.0 = *value + 1;
-                                rds.push(RangeDestination {
-                                    range: range_split,
-                                    destination,
-                                });
-
-                                range.a.1 = *value;
-                            }
-                        };
-                    }
-                    Sign::Lt => {
-                        if &range.a.0 < value {
-                            if &range.a.1 < value {
-                                rds.push(RangeDestination { range, destination });
-                                break;
-                            } else {
-                                let mut range_split = range;
-                                range_split.a.1 = *value - 1;
-                                rds.push(RangeDestination {
-                                    range: range_split,
-                                    destination,
-                                });
-
-                                range.a.0 = *value;
-                            }
-                        };
-                    }
-                },
-                Category::S => match sign {
-                    Sign::Gt => {
-                        if &range.s.1 > value {
-                            if &range.s.0 > value {
-                                rds.push(RangeDestination { range, destination });
-                                break;
-                            } else {
-                                let mut range_split = range;
-                                range_split.s.0 = *value + 1;
-                                rds.push(RangeDestination {
-                                    range: range_split,
-                                    destination,
-                                });
-
-                                range.s.1 = *value;
-                            }
-                        };
-                    }
-                    Sign::Lt => {
-                        if &range.s.0 < value {
-                            if &range.s.1 < value {
-                                rds.push(RangeDestination { range, destination });
-                                break;
-                            } else {
-                                let mut range_split = range;
-                                range_split.s.1 = *value - 1;
-                                rds.push(RangeDestination {
-                                    range: range_split,
-                                    destination,
-                                });
-
-                                range.s.0 = *value;
-                            }
-                        };
-                    }
-                },
-            },
+                }
+            }
             Rule::Unconditional { destination } => {
-                rds.push(RangeDestination { range, destination });
+                rds.push(RangeDestination {
+                    r_range,
+                    dest: destination,
+                });
                 break;
             }
         }
     }
 
     rds
+}
+
+fn borrow_range<'a>(category: &Category, r_range: &'a mut RatingsRange) -> &'a mut (u64, u64) {
+    match category {
+        Category::X => &mut r_range.x,
+        Category::M => &mut r_range.m,
+        Category::A => &mut r_range.a,
+        Category::S => &mut r_range.s,
+    }
 }
 
 struct Workflow<'a> {
@@ -262,7 +165,7 @@ enum Rule<'a> {
         category: Category,
         sign: Sign,
         value: u64,
-        destination: &'a str,
+        dest: &'a str,
     },
     Unconditional {
         destination: &'a str,
@@ -294,7 +197,7 @@ impl<'a> Rule<'a> {
                     category,
                     sign,
                     value,
-                    destination,
+                    dest: destination,
                 }
             }
         }
@@ -360,8 +263,8 @@ impl RatingsRange {
 
 #[derive(Copy, Clone)]
 struct RangeDestination<'a> {
-    range: RatingsRange,
-    destination: &'a str,
+    r_range: RatingsRange,
+    dest: &'a str,
 }
 
 impl RatingsRange {
