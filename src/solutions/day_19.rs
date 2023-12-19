@@ -4,34 +4,39 @@ use std::ops::Not;
 use std::str::FromStr;
 
 pub fn solve_1(list: &str) -> u64 {
-    let mut split = list.split("\n\n");
+    let (workflows, parts) = parse_list(list);
+    let a_ranges = find_a_ranges(workflows);
 
-    let workflows = split
-        .next()
-        .unwrap()
+    parts
+        .iter()
+        .filter(|&p| a_ranges.iter().any(|r| r.contains(p)))
+        .map(|p| p.rating_sum())
+        .sum()
+}
+
+pub fn solve_2(list: &str) -> u64 {
+    let (workflows, _) = parse_list(list);
+
+    find_a_ranges(workflows)
+        .iter()
+        .map(|r| r.combinations())
+        .sum()
+}
+
+fn parse_list(list: &str) -> (HashMap<&str, Workflow>, Vec<Part>) {
+    let split = list.split("\n\n").collect_vec();
+
+    let workflows = split[0]
         .split('\n')
         .map(Workflow::new)
         .map(|w| (w.name, w))
         .collect();
-    let parts = split
-        .next()
-        .unwrap()
-        .split('\n')
-        .map(Part::new)
-        .collect_vec();
+    let parts = split[1].split('\n').map(Part::new).collect_vec();
 
-    resolve_system(parts, workflows)
+    (workflows, parts)
 }
 
-pub fn solve_2(list: &str) -> u64 {
-    let workflows: HashMap<_, _> = list
-        .split("\n\n")
-        .next()
-        .unwrap()
-        .split('\n')
-        .map(SimpleWorkflow::new)
-        .map(|w| (w.name, w))
-        .collect();
+fn find_a_ranges(workflows: HashMap<&str, Workflow>) -> Vec<RatingsRange> {
     let rd_start = RangeDestination {
         range: RatingsRange {
             x: (1, 4000),
@@ -42,15 +47,15 @@ pub fn solve_2(list: &str) -> u64 {
         destination: "in",
     };
 
-    let mut total_combinations = 0;
-    let mut queue: VecDeque<RangeDestination> = VecDeque::new();
+    let mut a_ranges = Vec::new();
+    let mut queue = VecDeque::new();
     queue.push_back(rd_start);
 
     while queue.is_empty().not() {
         let rd = queue.pop_front().unwrap();
 
         match rd.destination {
-            "A" => total_combinations += rd.range.combinations(),
+            "A" => a_ranges.push(rd.range),
             "R" => {}
             _ => resolve_workflow(&rd, &workflows)
                 .iter()
@@ -58,13 +63,13 @@ pub fn solve_2(list: &str) -> u64 {
         }
     }
 
-    total_combinations
+    a_ranges
 }
 
 // TODO, properly reference / dereference the range tuple to combat code duplication
 fn resolve_workflow<'a>(
     rd: &RangeDestination<'a>,
-    workflows: &HashMap<&'a str, SimpleWorkflow<'a>>,
+    workflows: &HashMap<&'a str, Workflow<'a>>,
 ) -> Vec<RangeDestination<'a>> {
     let workflow = &workflows[rd.destination];
     let mut rds = Vec::new();
@@ -72,7 +77,7 @@ fn resolve_workflow<'a>(
 
     for rule in &workflow.rules {
         match rule {
-            SimpleRule::Conditional {
+            Rule::Conditional {
                 category,
                 sign,
                 value,
@@ -223,7 +228,7 @@ fn resolve_workflow<'a>(
                     }
                 },
             },
-            SimpleRule::Unconditional { destination } => {
+            Rule::Unconditional { destination } => {
                 rds.push(RangeDestination { range, destination });
                 break;
             }
@@ -231,49 +236,6 @@ fn resolve_workflow<'a>(
     }
 
     rds
-}
-
-fn resolve_system<'a>(parts: Vec<Part>, workflows: HashMap<&'a str, Workflow<'a>>) -> u64 {
-    let mut total_rating_sum = 0;
-
-    for part in parts {
-        let mut workflow = &workflows["in"];
-        let mut cur_destination = "";
-        loop {
-            for rule in &workflow.rules {
-                match rule {
-                    Rule::Conditional {
-                        destination,
-                        predicate,
-                    } => {
-                        if predicate(&part) {
-                            cur_destination = destination;
-                            break;
-                        }
-                    }
-                    Rule::Unconditional { destination } => {
-                        cur_destination = destination;
-                        break;
-                    }
-                }
-            }
-
-            match cur_destination {
-                "A" => {
-                    total_rating_sum += part.rating_sum();
-                    break;
-                }
-                "R" => {
-                    break;
-                }
-                _ => {
-                    workflow = &workflows[cur_destination];
-                }
-            }
-        }
-    }
-
-    total_rating_sum
 }
 
 struct Workflow<'a> {
@@ -297,8 +259,10 @@ impl<'a> Workflow<'a> {
 
 enum Rule<'a> {
     Conditional {
+        category: Category,
+        sign: Sign,
+        value: u64,
         destination: &'a str,
-        predicate: Box<dyn Fn(&Part) -> bool>,
     },
     Unconditional {
         destination: &'a str,
@@ -311,42 +275,42 @@ impl<'a> Rule<'a> {
         match split {
             None => Rule::Unconditional { destination: rule },
             Some(idx) => {
-                let category = &rule[..1];
-                let sign = &rule[1..2];
+                let category = match &rule[..1] {
+                    "x" => Category::X,
+                    "m" => Category::M,
+                    "a" => Category::A,
+                    "s" => Category::S,
+                    _ => unreachable!(),
+                };
+                let sign = match &rule[1..2] {
+                    ">" => Sign::Gt,
+                    "<" => Sign::Lt,
+                    _ => unreachable!(),
+                };
                 let value = u64::from_str(&rule[2..idx]).unwrap();
                 let destination = &rule[idx + 1..];
 
-                let predicate: Box<dyn Fn(&Part) -> bool> = match category {
-                    "x" => match sign {
-                        ">" => Box::new(move |p: &Part| p.x > value),
-                        "<" => Box::new(move |p: &Part| p.x < value),
-                        _ => unreachable!(),
-                    },
-                    "m" => match sign {
-                        ">" => Box::new(move |p: &Part| p.m > value),
-                        "<" => Box::new(move |p: &Part| p.m < value),
-                        _ => unreachable!(),
-                    },
-                    "a" => match sign {
-                        ">" => Box::new(move |p: &Part| p.a > value),
-                        "<" => Box::new(move |p: &Part| p.a < value),
-                        _ => unreachable!(),
-                    },
-                    "s" => match sign {
-                        ">" => Box::new(move |p: &Part| p.s > value),
-                        "<" => Box::new(move |p: &Part| p.s < value),
-                        _ => unreachable!(),
-                    },
-                    _ => unreachable!(),
-                };
-
                 Rule::Conditional {
+                    category,
+                    sign,
+                    value,
                     destination,
-                    predicate,
                 }
             }
         }
     }
+}
+
+enum Category {
+    X,
+    M,
+    A,
+    S,
+}
+
+enum Sign {
+    Gt,
+    Lt,
 }
 
 struct Part {
@@ -373,85 +337,7 @@ impl Part {
     }
 }
 
-struct SimpleWorkflow<'a> {
-    name: &'a str,
-    rules: Vec<SimpleRule<'a>>,
-}
-
-impl<'a> SimpleWorkflow<'a> {
-    fn new(workflow: &'a str) -> SimpleWorkflow<'a> {
-        let split = workflow.find('{').unwrap();
-
-        let name = &workflow[..split];
-        let rules = workflow[split + 1..workflow.len() - 1]
-            .split(',')
-            .map(SimpleRule::new)
-            .collect_vec();
-
-        SimpleWorkflow { name, rules }
-    }
-}
-
-#[derive(Debug)]
-enum SimpleRule<'a> {
-    Conditional {
-        category: Category,
-        sign: Sign,
-        value: u64,
-        destination: &'a str,
-    },
-    Unconditional {
-        destination: &'a str,
-    },
-}
-
-impl<'a> SimpleRule<'a> {
-    fn new(rule: &'a str) -> SimpleRule<'a> {
-        let split = rule.find(':');
-        match split {
-            None => SimpleRule::Unconditional { destination: rule },
-            Some(idx) => {
-                let category = match &rule[..1] {
-                    "x" => Category::X,
-                    "m" => Category::M,
-                    "a" => Category::A,
-                    "s" => Category::S,
-                    _ => unreachable!(),
-                };
-                let sign = match &rule[1..2] {
-                    ">" => Sign::Gt,
-                    "<" => Sign::Lt,
-                    _ => unreachable!(),
-                };
-                let value = u64::from_str(&rule[2..idx]).unwrap();
-                let destination = &rule[idx + 1..];
-
-                SimpleRule::Conditional {
-                    category,
-                    sign,
-                    value,
-                    destination,
-                }
-            }
-        }
-    }
-}
-
-#[derive(Debug)]
-enum Category {
-    X,
-    M,
-    A,
-    S,
-}
-
-#[derive(Debug)]
-enum Sign {
-    Gt,
-    Lt,
-}
-
-#[derive(Debug, Copy, Clone)]
+#[derive(Copy, Clone)]
 struct RatingsRange {
     x: (u64, u64),
     m: (u64, u64),
@@ -459,7 +345,20 @@ struct RatingsRange {
     s: (u64, u64),
 }
 
-#[derive(Debug, Copy, Clone)]
+impl RatingsRange {
+    fn contains(&self, part: &Part) -> bool {
+        part.x >= self.x.0
+            && part.x <= self.x.1
+            && part.m >= self.m.0
+            && part.m <= self.m.1
+            && part.a >= self.a.0
+            && part.a <= self.a.1
+            && part.s >= self.s.0
+            && part.s <= self.s.1
+    }
+}
+
+#[derive(Copy, Clone)]
 struct RangeDestination<'a> {
     range: RatingsRange,
     destination: &'a str,
