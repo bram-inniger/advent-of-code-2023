@@ -1,10 +1,11 @@
 use crate::util::lcm;
 use itertools::Itertools;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
+use rustc_hash::FxHashMap;
 use std::ops::Not;
 
-pub fn solve_1(modules: Vec<&str>) -> u64 {
-    let mut modules = parse_modules(&modules);
+pub fn solve_1(modules: &[&str]) -> u64 {
+    let mut modules = parse_modules(modules);
     let mut results = Vec::new();
 
     for _ in 0..1000 {
@@ -29,14 +30,14 @@ pub fn solve_1(modules: Vec<&str>) -> u64 {
 ///
 /// The broadcast module and the 4 cycle start modules are shown in light blue.
 /// The "rx" module, its source and the 4 modules finishing up the cycles are shown in light green.
-pub fn solve_2(modules: Vec<&str>) -> u64 {
+pub fn solve_2(modules: &[&str]) -> u64 {
     ["fh", "mf", "fz", "ss"]
         .iter()
-        .map(|&m| find_cycle(&mut parse_modules(&modules), m))
+        .map(|&m| find_cycle(&mut parse_modules(modules), m))
         .fold(1, lcm)
 }
 
-fn find_cycle(modules: &mut HashMap<&str, Module>, cycle_module: &str) -> u64 {
+fn find_cycle(modules: &mut FxHashMap<&str, Module>, cycle_module: &str) -> u64 {
     let mut cycle_length = 0;
     let mut result = PulseResult {
         high: 0,
@@ -52,7 +53,7 @@ fn find_cycle(modules: &mut HashMap<&str, Module>, cycle_module: &str) -> u64 {
     cycle_length
 }
 
-fn push_button(modules: &mut HashMap<&str, Module>, cycle_module: &str) -> PulseResult {
+fn push_button(modules: &mut FxHashMap<&str, Module>, cycle_module: &str) -> PulseResult {
     let mut result = PulseResult {
         high: 0,
         low: 0,
@@ -148,9 +149,9 @@ fn push_button(modules: &mut HashMap<&str, Module>, cycle_module: &str) -> Pulse
     result
 }
 
-fn parse_modules<'a>(modules: &[&'a str]) -> HashMap<&'a str, Module<'a>> {
+fn parse_modules<'a>(modules: &[&'a str]) -> FxHashMap<&'a str, Module<'a>> {
     // Read the modules from the input line by line
-    let mut modules: HashMap<&str, Module> = modules
+    let mut modules: FxHashMap<&str, Module> = modules
         .iter()
         .map(|&m| Module::new(m))
         .map(|m| {
@@ -200,7 +201,7 @@ enum Module<'a> {
     },
     Conjunction {
         label: &'a str,
-        state: HashMap<&'a str, Pulse>,
+        state: FxHashMap<&'a str, Pulse>,
         destinations: Vec<&'a str>,
     },
     Broadcast {
@@ -249,7 +250,7 @@ impl<'a> Module<'a> {
         }
     }
 
-    fn try_conjunction_state(&mut self) -> &mut HashMap<&'a str, Pulse> {
+    fn try_conjunction_state(&mut self) -> &mut FxHashMap<&'a str, Pulse> {
         match self {
             Module::Conjunction { state, .. } => state,
             _ => panic!("Trying to get conjunction state from a non-conjunction module"),
@@ -297,7 +298,7 @@ mod tests {
             "&inv -> a",
         ];
 
-        assert_eq!(32_000_000, solve_1(sample));
+        assert_eq!(32_000_000, solve_1(&sample));
 
         let sample = vec![
             "broadcaster -> a",
@@ -307,14 +308,14 @@ mod tests {
             "&con -> output",
         ];
 
-        assert_eq!(11_687_500, solve_1(sample));
+        assert_eq!(11_687_500, solve_1(&sample));
     }
 
     #[test]
     fn day_20_part_01_solution() {
-        let input = include_str!("../../inputs/day_20.txt").lines().collect();
+        let input = include_str!("../../inputs/day_20.txt").lines().collect_vec();
 
-        assert_eq!(787_056_720, solve_1(input));
+        assert_eq!(787_056_720, solve_1(&input));
     }
 
     #[test]
@@ -324,8 +325,8 @@ mod tests {
 
     #[test]
     fn day_20_part_02_solution() {
-        let input = include_str!("../../inputs/day_20.txt").lines().collect();
+        let input = include_str!("../../inputs/day_20.txt").lines().collect_vec();
 
-        assert_eq!(212_986_464_842_911, solve_2(input));
+        assert_eq!(212_986_464_842_911, solve_2(&input));
     }
 }
