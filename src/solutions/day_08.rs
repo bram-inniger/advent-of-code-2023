@@ -1,6 +1,8 @@
-use crate::util::lcm;
-use std::collections::{HashMap, HashSet};
 use std::ops::{Index, Not};
+
+use rustc_hash::{FxHashMap, FxHashSet};
+
+use crate::util::lcm;
 
 pub fn solve_1(map: Vec<&str>) -> u64 {
     solve(map, "AAA", "ZZZ")
@@ -76,7 +78,7 @@ impl Direction {
 
 #[derive(Debug)]
 struct Graph<'a> {
-    nodes: HashMap<&'a str, (&'a str, &'a str)>,
+    nodes: FxHashMap<&'a str, (&'a str, &'a str)>,
 }
 
 impl<'a> Graph<'a> {
@@ -94,7 +96,7 @@ impl<'a> Graph<'a> {
         Graph { nodes }
     }
 
-    fn start_values(&self) -> HashSet<&'a str> {
+    fn start_values(&self) -> FxHashSet<&'a str> {
         self.nodes.keys().copied().collect()
     }
 

@@ -1,7 +1,7 @@
-use itertools::Itertools;
 use std::cmp::min;
-use std::fmt;
-use std::fmt::Formatter;
+use std::fmt::{self, Formatter};
+
+use itertools::Itertools;
 
 pub fn solve_1(ash: &str) -> usize {
     solve(ash, &(|p| p.find_mirror()))

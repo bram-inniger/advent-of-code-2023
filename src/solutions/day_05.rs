@@ -1,7 +1,8 @@
-use itertools::Itertools;
-use std::collections::HashSet;
 use std::ops::Range;
 use std::str::FromStr;
+
+use itertools::Itertools;
+use rustc_hash::FxHashSet;
 
 pub fn solve_1(almanac: &str) -> u64 {
     solve(almanac, &Almanac::seeds_as_single_ranges)
@@ -11,7 +12,7 @@ pub fn solve_2(almanac: &str) -> u64 {
     solve(almanac, &Almanac::seeds_as_ranges)
 }
 
-fn solve(almanac: &str, seeds_to_ranges: &dyn Fn(&Almanac) -> HashSet<Range<u64>>) -> u64 {
+fn solve(almanac: &str, seeds_to_ranges: &dyn Fn(&Almanac) -> FxHashSet<Range<u64>>) -> u64 {
     let almanac = Almanac::new(almanac);
     let mut ranges = seeds_to_ranges(&almanac);
 
@@ -54,11 +55,11 @@ impl Almanac {
         Almanac { seeds, categories }
     }
 
-    fn seeds_as_single_ranges(&self) -> HashSet<Range<u64>> {
+    fn seeds_as_single_ranges(&self) -> FxHashSet<Range<u64>> {
         self.seeds.iter().map(|s| *s..*s + 1).collect()
     }
 
-    fn seeds_as_ranges(&self) -> HashSet<Range<u64>> {
+    fn seeds_as_ranges(&self) -> FxHashSet<Range<u64>> {
         self.seeds
             .chunks(2)
             .map(|c| {
@@ -84,15 +85,15 @@ impl Category {
         Category { _name, mappings }
     }
 
-    fn convert(&self, ranges: &HashSet<Range<u64>>) -> HashSet<Range<u64>> {
+    fn convert(&self, ranges: &FxHashSet<Range<u64>>) -> FxHashSet<Range<u64>> {
         ranges
             .iter()
             .flat_map(|r| Self::convert_single(self, r))
             .collect()
     }
 
-    fn convert_single(&self, range: &Range<u64>) -> HashSet<Range<u64>> {
-        let mut converted_ranges = HashSet::new();
+    fn convert_single(&self, range: &Range<u64>) -> FxHashSet<Range<u64>> {
+        let mut converted_ranges = FxHashSet::default();
         let mut current = range.start;
 
         // First case to account for is our range ending before the first mapping's start

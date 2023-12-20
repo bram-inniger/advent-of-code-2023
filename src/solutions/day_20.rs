@@ -1,8 +1,10 @@
-use crate::util::lcm;
-use itertools::Itertools;
 use std::collections::VecDeque;
-use rustc_hash::FxHashMap;
 use std::ops::Not;
+
+use itertools::Itertools;
+use rustc_hash::FxHashMap;
+
+use crate::util::lcm;
 
 pub fn solve_1(modules: &[&str]) -> u64 {
     let mut modules = parse_modules(modules);
@@ -313,7 +315,9 @@ mod tests {
 
     #[test]
     fn day_20_part_01_solution() {
-        let input = include_str!("../../inputs/day_20.txt").lines().collect_vec();
+        let input = include_str!("../../inputs/day_20.txt")
+            .lines()
+            .collect_vec();
 
         assert_eq!(787_056_720, solve_1(&input));
     }
@@ -325,7 +329,9 @@ mod tests {
 
     #[test]
     fn day_20_part_02_solution() {
-        let input = include_str!("../../inputs/day_20.txt").lines().collect_vec();
+        let input = include_str!("../../inputs/day_20.txt")
+            .lines()
+            .collect_vec();
 
         assert_eq!(212_986_464_842_911, solve_2(&input));
     }

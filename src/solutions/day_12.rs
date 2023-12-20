@@ -1,6 +1,7 @@
-use itertools::Itertools;
-use std::collections::HashMap;
 use std::str::FromStr;
+
+use itertools::Itertools;
+use rustc_hash::FxHashMap;
 
 pub fn solve_1(records: Vec<&str>) -> u64 {
     solve(records, false)
@@ -45,13 +46,13 @@ impl Record {
     }
 
     fn nr_arrangements(self, expand: bool) -> u64 {
-        let mut memo = HashMap::new();
+        let mut memo = FxHashMap::default();
         let record = if expand { self.expand() } else { self };
 
         Self::nr_arrangements_rec(record, &mut memo)
     }
 
-    fn nr_arrangements_rec(self, memo: &mut HashMap<Record, u64>) -> u64 {
+    fn nr_arrangements_rec(self, memo: &mut FxHashMap<Record, u64>) -> u64 {
         if let Some(v) = memo.get(&self) {
             return *v;
         }

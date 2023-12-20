@@ -1,7 +1,8 @@
+use std::ops::{Index, Not};
+
 use itertools::Itertools;
 use radix_heap::RadixHeapMap;
 use rustc_hash::FxHashMap;
-use std::ops::{Index, Not};
 
 const BASE_10: u32 = 10;
 
@@ -44,7 +45,7 @@ impl City {
 
     fn shortest_path(&self, ultra: bool) -> u16 {
         let mut dist = FxHashMap::default();
-        let mut heap:RadixHeapMap<std::cmp::Reverse<u16>,Position> = RadixHeapMap::new();
+        let mut heap: RadixHeapMap<std::cmp::Reverse<u16>, Position> = RadixHeapMap::new();
 
         let start_r = Position {
             coord: (0, 0),

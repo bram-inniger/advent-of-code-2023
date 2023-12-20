@@ -1,5 +1,6 @@
-use itertools::Itertools;
 use std::str::FromStr;
+
+use itertools::Itertools;
 
 const BASE_10: u32 = 10;
 
@@ -79,14 +80,14 @@ impl<'a> Type<'a> {
                 } else {
                     Type { value: 4, _name: "Full house" }
                 }
-            },
+            }
             3 => {
                 if counts.values().any(|&c| c == 3) {
                     Type { value: 3, _name: "Three of a kind" }
                 } else {
                     Type { value: 2, _name: "Two pair" }
                 }
-            },
+            }
             4 => Type { value: 1, _name: "One Pair" },
             5 => Type { value: 0, _name: "High card" },
             _ => panic!("Invalid hand: {hand}"),

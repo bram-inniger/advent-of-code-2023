@@ -1,6 +1,7 @@
-use indexmap::IndexMap;
 use std::str::FromStr;
 use std::usize;
+
+use indexmap::IndexMap;
 
 pub fn solve_1(init_sequence: &str) -> usize {
     init_sequence.split(',').map(|s| hash(s) as usize).sum()

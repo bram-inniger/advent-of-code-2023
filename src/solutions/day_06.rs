@@ -1,5 +1,6 @@
-use regex::Regex;
 use std::str::FromStr;
+
+use regex::Regex;
 
 pub fn solve_1(races: Vec<&str>) -> u64 {
     parse_races_bad_kerning(races)

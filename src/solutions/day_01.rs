@@ -1,5 +1,6 @@
-use regex::Regex;
 use std::str::FromStr;
+
+use regex::Regex;
 
 pub fn solve_1(document: Vec<&str>) -> u32 {
     let re = Regex::new(r"([1-9])").unwrap();

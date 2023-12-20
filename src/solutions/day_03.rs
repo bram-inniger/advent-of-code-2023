@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use rustc_hash::FxHashSet;
 
 const BASE_10: u32 = 10;
 
@@ -129,7 +129,9 @@ impl<'a> Number<'a> {
     }
 
     fn is_part(&self) -> bool {
-        let symbols = HashSet::from(['#', '$', '%', '&', '*', '+', '-', '/', '=', '@']);
+        let symbols: FxHashSet<_> = vec!['#', '$', '%', '&', '*', '+', '-', '/', '=', '@']
+            .into_iter()
+            .collect();
         let empty: Vec<char> = Vec::new();
 
         ((self.y - 1)..=self.y + 1)

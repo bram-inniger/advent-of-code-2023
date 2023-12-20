@@ -1,5 +1,6 @@
-use std::collections::HashMap;
 use std::ops::Not;
+
+use rustc_hash::FxHashMap;
 
 pub fn solve_1(dish: Vec<&str>) -> usize {
     Dish::new(dish).tilt(&Direction::North).total_load()
@@ -136,7 +137,7 @@ impl Dish {
     }
 
     fn detect_repeat(&mut self) -> (usize, usize) {
-        let mut memo: HashMap<Self, _> = HashMap::new();
+        let mut memo: FxHashMap<Self, _> = FxHashMap::default();
 
         let mut repeat_start: usize = 0;
         let mut repeat_length: usize = 0;
