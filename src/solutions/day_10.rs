@@ -1,5 +1,6 @@
-use std::collections::HashSet;
 use std::ops::{Index, Not};
+
+use rustc_hash::FxHashSet;
 
 pub fn solve_1(maze: Vec<&str>) -> usize {
     Maze::new(maze).pipe_loop.len() / 2
@@ -12,7 +13,7 @@ pub fn solve_2(maze: Vec<&str>) -> usize {
 #[derive(Debug)]
 struct Maze {
     tiles: Vec<Vec<Tile>>,
-    pipe_loop: HashSet<(usize, usize)>,
+    pipe_loop: FxHashSet<(usize, usize)>,
 }
 
 impl Maze {
@@ -26,9 +27,9 @@ impl Maze {
         Maze { tiles, pipe_loop }
     }
 
-    fn find_loop(tiles: &Vec<Vec<Tile>>) -> HashSet<(usize, usize)> {
+    fn find_loop(tiles: &Vec<Vec<Tile>>) -> FxHashSet<(usize, usize)> {
         let start = Self::find_start(tiles);
-        let mut pipe_loop = HashSet::new();
+        let mut pipe_loop = FxHashSet::default();
         pipe_loop.insert(start);
 
         let mut prev = start;

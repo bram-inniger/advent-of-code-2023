@@ -1,7 +1,9 @@
-use itertools::Itertools;
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 use std::ops::Not;
 use std::str::FromStr;
+
+use itertools::Itertools;
+use rustc_hash::FxHashMap;
 
 pub fn solve_1(list: &str) -> u64 {
     let (workflows, parts) = parse_list(list);
@@ -23,7 +25,7 @@ pub fn solve_2(list: &str) -> u64 {
         .sum()
 }
 
-fn parse_list(list: &str) -> (HashMap<&str, Workflow>, Vec<Part>) {
+fn parse_list(list: &str) -> (FxHashMap<&str, Workflow>, Vec<Part>) {
     let split = list.split("\n\n").collect_vec();
 
     let workflows = split[0]
@@ -36,7 +38,7 @@ fn parse_list(list: &str) -> (HashMap<&str, Workflow>, Vec<Part>) {
     (workflows, parts)
 }
 
-fn find_a_ranges(workflows: HashMap<&str, Workflow>) -> Vec<RatingsRange> {
+fn find_a_ranges(workflows: FxHashMap<&str, Workflow>) -> Vec<RatingsRange> {
     let rd_start = RangeDestination {
         r_range: RatingsRange {
             x: (1, 4000),
@@ -68,7 +70,7 @@ fn find_a_ranges(workflows: HashMap<&str, Workflow>) -> Vec<RatingsRange> {
 
 fn resolve_workflow<'a>(
     rd: &RangeDestination<'a>,
-    workflows: &HashMap<&'a str, Workflow<'a>>,
+    workflows: &FxHashMap<&'a str, Workflow<'a>>,
 ) -> Vec<RangeDestination<'a>> {
     let workflow = &workflows[rd.dest];
     let mut rds = Vec::new();

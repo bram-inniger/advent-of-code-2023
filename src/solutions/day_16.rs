@@ -1,7 +1,9 @@
+use std::collections::VecDeque;
+use std::ops::Not;
+
 use itertools::Itertools;
 use rayon::prelude::*;
-use std::collections::{HashMap, HashSet, VecDeque};
-use std::ops::Not;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 type Coord = (i16, i16);
 
@@ -15,14 +17,14 @@ pub fn solve_2(layout: Vec<&str>) -> u32 {
 
 #[derive(Debug)]
 struct Layout {
-    grid: HashMap<Coord, Tile>,
+    grid: FxHashMap<Coord, Tile>,
     height: i16,
     width: i16,
 }
 
 impl Layout {
     fn new(layout: Vec<&str>) -> Layout {
-        let grid: HashMap<Coord, Tile> = layout
+        let grid: FxHashMap<Coord, Tile> = layout
             .iter()
             .enumerate()
             .flat_map(|(y, &s)| {
@@ -78,7 +80,7 @@ impl Layout {
     }
 
     fn bounce_light(&self, init: (Coord, Direction)) -> u32 {
-        let mut seen = HashSet::new();
+        let mut seen = FxHashSet::default();
         let mut to_visit: VecDeque<(Coord, Direction)> = VecDeque::new();
 
         to_visit.push_back((init.0, init.1));

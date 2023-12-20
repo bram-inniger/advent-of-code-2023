@@ -1,7 +1,8 @@
+use std::str::FromStr;
+
 use itertools::Itertools;
 use regex::Regex;
-use std::collections::HashMap;
-use std::str::FromStr;
+use rustc_hash::FxHashMap;
 
 pub fn solve_1(games: Vec<&str>) -> u32 {
     games
@@ -36,9 +37,9 @@ impl Game {
                 .captures(game)
                 .unwrap()["id"],
         )
-        .unwrap();
+            .unwrap();
 
-        let max_draw: HashMap<_, _> = Regex::new(r"(\d+ (?:red|green|blue))")
+        let max_draw: FxHashMap<_, _> = Regex::new(r"(\d+ (?:red|green|blue))")
             .unwrap()
             .find_iter(game)
             .map(|m| m.as_str())

@@ -1,6 +1,7 @@
-use regex::Regex;
-use std::collections::HashSet;
 use std::str::FromStr;
+
+use regex::Regex;
+use rustc_hash::FxHashSet;
 
 pub fn solve_1(cards: Vec<&str>) -> u32 {
     parse_cards(&cards).iter().map(|c| c.score()).sum()
@@ -37,7 +38,7 @@ fn parse_cards(cards: &[&str]) -> Vec<Card> {
 
 struct Card {
     card_id: u32,
-    winning: HashSet<u32>,
+    winning: FxHashSet<u32>,
     having: Vec<u32>,
 }
 
@@ -48,7 +49,7 @@ impl Card {
         };
 
         let card_id = u32::from_str(&caps["card_id"]).unwrap();
-        let winning: HashSet<_> = re_numbers
+        let winning: FxHashSet<_> = re_numbers
             .find_iter(&caps["winning"])
             .map(|m| m.as_str())
             .map(u32::from_str)

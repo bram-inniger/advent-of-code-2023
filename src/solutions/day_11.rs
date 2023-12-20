@@ -1,6 +1,7 @@
-use itertools::Itertools;
-use std::collections::HashSet;
 use std::ops::{Not, Range};
+
+use itertools::Itertools;
+use rustc_hash::FxHashSet;
 
 pub fn solve_1(image: Vec<&str>) -> u64 {
     Space::new(image).expand(1).distance_sums()
@@ -12,7 +13,7 @@ pub fn solve_2(image: Vec<&str>, increase: i64) -> u64 {
 
 #[derive(Debug)]
 struct Space {
-    galaxies: HashSet<(i64, i64)>,
+    galaxies: FxHashSet<(i64, i64)>,
     horizontal: Range<i64>,
     vertical: Range<i64>,
 }
