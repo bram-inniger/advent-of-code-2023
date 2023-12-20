@@ -6,7 +6,7 @@
 use criterion::{criterion_group, criterion_main, Criterion};
 use advent_of_code_2023::solutions::*;
 
-fn day18(c: &mut Criterion) {
+fn day19(c: &mut Criterion) {
     let input = include_str!("../inputs/day_19.txt").trim();
     let mut group = c.benchmark_group("day19");
 
@@ -19,5 +19,5 @@ fn day18(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, day18);
+criterion_group!(benches, day19);
 criterion_main!(benches);
