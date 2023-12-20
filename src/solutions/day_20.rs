@@ -1,59 +1,63 @@
+use crate::util::lcm;
 use itertools::Itertools;
 use std::collections::{HashMap, VecDeque};
 use std::ops::Not;
 
 pub fn solve_1(modules: Vec<&str>) -> u64 {
+    let mut modules = parse_modules(&modules);
     let mut results = Vec::new();
-    let mut modules = modules
-        .iter()
-        .map(|&m| Module::new(m))
-        .map(|m| {
-            (
-                match m {
-                    Module::FlipFlop { label, .. }
-                    | Module::Conjunction { label, .. }
-                    | Module::Broadcast { label, .. } => label,
-                },
-                m,
-            )
-        })
-        .collect();
-    wire_conjunction_inputs(&mut modules);
 
     for _ in 0..1000 {
-        let result = push_button(&mut modules);
+        let result = push_button(&mut modules, "");
         results.push(result)
     }
 
     results.iter().map(|r| r.high).sum::<u64>() * results.iter().map(|r| r.low).sum::<u64>()
 }
 
-fn wire_conjunction_inputs(modules: &mut HashMap<&str, Module>) {
-    let conjunctions = modules
-        .values()
-        .filter(|m| matches!(m, Module::Conjunction { .. }))
-        .map(|m| m.label())
-        .collect_vec();
-
-    for conjunction in conjunctions {
-        let incoming_modules = modules
-            .values()
-            .filter(|&m| m.destinations().iter().any(|&d| d == conjunction))
-            .map(|m| m.label())
-            .collect_vec();
-        let state = modules
-            .get_mut(conjunction)
-            .unwrap()
-            .try_conjunction_state();
-
-        incoming_modules.iter().for_each(|&i| {
-            state.insert(i, Pulse::Low);
-        });
-    }
+/// Inspecting the input file shows the "rx" module receives pulses through "ql".
+/// "ql" is a conjunction which will emit a low pulse if and only if its 4 inputs: ["fh", "mf", "fz", "ss"],
+/// are all high.
+///
+/// Printing the graph of inputs using [GraphViz](https://graphviz.org) shows 4 independent loops,
+/// ending in the inputs above.
+///
+/// Re-applying the solution of Day 8, and applying LCM on the cycle lengths of these loop yields the solution.
+///
+/// The graph source can be found [here](../../problems/other/day_20.dot)
+/// The rendered graph can be found [here](../../problems/other/day_20.png)
+///
+/// The broadcast module and the 4 cycle start modules are shown in light blue.
+/// The "rx" module, its source and the 4 modules finishing up the cycles are shown in light green.
+pub fn solve_2(modules: Vec<&str>) -> u64 {
+    ["fh", "mf", "fz", "ss"]
+        .iter()
+        .map(|&m| find_cycle(&mut parse_modules(&modules), m))
+        .fold(1, lcm)
 }
 
-fn push_button(modules: &mut HashMap<&str, Module>) -> PulseResult {
-    let mut result = PulseResult { high: 0, low: 0 };
+fn find_cycle(modules: &mut HashMap<&str, Module>, cycle_module: &str) -> u64 {
+    let mut cycle_length = 0;
+    let mut result = PulseResult {
+        high: 0,
+        low: 0,
+        cycle: false,
+    };
+
+    while result.cycle.not() {
+        result = push_button(modules, cycle_module);
+        cycle_length += 1;
+    }
+
+    cycle_length
+}
+
+fn push_button(modules: &mut HashMap<&str, Module>, cycle_module: &str) -> PulseResult {
+    let mut result = PulseResult {
+        high: 0,
+        low: 0,
+        cycle: false,
+    };
     let mut queue = VecDeque::new();
     queue.push_back(Signal {
         source: "button",
@@ -64,6 +68,14 @@ fn push_button(modules: &mut HashMap<&str, Module>) -> PulseResult {
     while queue.is_empty().not() {
         let signal = queue.pop_front().unwrap();
 
+        if signal.destination == "ql"
+            && signal.source == cycle_module
+            && matches!(signal.pulse, Pulse::High)
+        {
+            result.cycle = true;
+            return result;
+        }
+
         match signal.pulse {
             Pulse::High => result.high += 1,
             Pulse::Low => result.low += 1,
@@ -71,7 +83,7 @@ fn push_button(modules: &mut HashMap<&str, Module>) -> PulseResult {
 
         let module = match modules.get_mut(signal.destination) {
             None => continue,
-            Some(m) => m
+            Some(m) => m,
         };
         let source = module.label();
 
@@ -136,6 +148,49 @@ fn push_button(modules: &mut HashMap<&str, Module>) -> PulseResult {
     result
 }
 
+fn parse_modules<'a>(modules: &[&'a str]) -> HashMap<&'a str, Module<'a>> {
+    // Read the modules from the input line by line
+    let mut modules: HashMap<&str, Module> = modules
+        .iter()
+        .map(|&m| Module::new(m))
+        .map(|m| {
+            (
+                match m {
+                    Module::FlipFlop { label, .. }
+                    | Module::Conjunction { label, .. }
+                    | Module::Broadcast { label, .. } => label,
+                },
+                m,
+            )
+        })
+        .collect();
+
+    // Now "wire" together the modules having a conjunction as their destination, to that conjunction
+    let conjunctions = modules
+        .values()
+        .filter(|m| matches!(m, Module::Conjunction { .. }))
+        .map(|m| m.label())
+        .collect_vec();
+
+    for conjunction in conjunctions {
+        let incoming_modules = modules
+            .values()
+            .filter(|&m| m.destinations().iter().any(|&d| d == conjunction))
+            .map(|m| m.label())
+            .collect_vec();
+        let state = modules
+            .get_mut(conjunction)
+            .unwrap()
+            .try_conjunction_state();
+
+        incoming_modules.iter().for_each(|&i| {
+            state.insert(i, Pulse::Low);
+        });
+    }
+
+    modules
+}
+
 #[derive(Debug)]
 enum Module<'a> {
     FlipFlop {
@@ -170,7 +225,10 @@ impl<'a> Module<'a> {
                 state: Default::default(),
                 destinations,
             },
-            "b" => Module::Broadcast { label: "broadcaster", destinations },
+            "b" => Module::Broadcast {
+                label: "broadcaster",
+                destinations,
+            },
             _ => unreachable!(),
         }
     }
@@ -215,6 +273,7 @@ enum Pulse {
 struct PulseResult {
     high: u64,
     low: u64,
+    cycle: bool,
 }
 
 #[derive(Debug)]
@@ -256,5 +315,17 @@ mod tests {
         let input = include_str!("../../inputs/day_20.txt").lines().collect();
 
         assert_eq!(787_056_720, solve_1(input));
+    }
+
+    #[test]
+    fn day_20_part_02_sample() {
+        // No sample input(s) for part 2
+    }
+
+    #[test]
+    fn day_20_part_02_solution() {
+        let input = include_str!("../../inputs/day_20.txt").lines().collect();
+
+        assert_eq!(212_986_464_842_911, solve_2(input));
     }
 }

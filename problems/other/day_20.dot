@@ -1,0 +1,123 @@
+// Render using: `$ dot -Tpng day_20.dot -o day_20.png`
+
+digraph {
+    fl [label="%fl" shape=rectangle]
+    xb [label="%xb" shape=rectangle]
+    mq [label="%mq" shape=rectangle]
+    px [label="%px" shape=rectangle]
+    dp [label="%dp" shape=rectangle]
+    broadcaster [label="broadcaster" shape=doubleoctagon color=lightblue style=filled rank=source]
+    ql [label="&ql" shape=ellipse color=lightgreen style=filled]
+    gk [label="%gk" shape=rectangle]
+    vp [label="%vp" shape=rectangle]
+    fp [label="%fp" shape=rectangle]
+    lr [label="&lr" shape=ellipse]
+    xl [label="%xl" shape=rectangle]
+    xx [label="%xx" shape=rectangle]
+    cb [label="%cb" shape=rectangle]
+    hl [label="&hl" shape=ellipse]
+    vr [label="%vr" shape=rectangle]
+    bq [label="%bq" shape=rectangle]
+    jg [label="%jg" shape=rectangle]
+    hb [label="%hb" shape=rectangle]
+    qk [label="%qk" shape=rectangle]
+    gz [label="%gz" shape=rectangle]
+    rm [label="%rm" shape=rectangle]
+    tf [label="&tf" shape=ellipse]
+    qn [label="%qn" shape=rectangle]
+    js [label="%js" shape=rectangle color=lightblue style=filled]
+    qb [label="%qb" shape=rectangle]
+    zj [label="%zj" shape=rectangle]
+    td [label="%td" shape=rectangle]
+    tl [label="%tl" shape=rectangle]
+    gx [label="%gx" shape=rectangle]
+    hm [label="%hm" shape=rectangle]
+    fh [label="&fh" shape=ellipse color=lightgreen style=filled]
+    nj [label="%nj" shape=rectangle]
+    hq [label="%hq" shape=rectangle]
+    kg [label="%kg" shape=rectangle]
+    dc [label="%dc" shape=rectangle]
+    vf [label="%vf" shape=rectangle]
+    mf [label="&mf" shape=ellipse color=lightgreen style=filled]
+    tm [label="%tm" shape=rectangle]
+    fz [label="&fz" shape=ellipse color=lightgreen style=filled]
+    xd [label="%xd" shape=rectangle]
+    ng [label="%ng" shape=rectangle color=lightblue style=filled]
+    th [label="%th" shape=rectangle]
+    rd [label="%rd" shape=rectangle]
+    bt [label="%bt" shape=rectangle]
+    tv [label="%tv" shape=rectangle]
+    nl [label="%nl" shape=rectangle]
+    hs [label="%hs" shape=rectangle]
+    xv [label="%xv" shape=rectangle]
+    tn [label="%tn" shape=rectangle]
+    hj [label="%hj" shape=rectangle]
+    ss [label="&ss" shape=ellipse color=lightgreen style=filled]
+    sd [label="%sd" shape=rectangle]
+    sn [label="&sn" shape=ellipse]
+    kb [label="%kb" shape=rectangle]
+    lb [label="%lb" shape=rectangle color=lightblue style=filled]
+    gr [label="%gr" shape=rectangle color=lightblue style=filled]
+    nc [label="%nc" shape=rectangle]
+    rx [label="rx" shape=doubleoctagon color=lightgreen style=filled rank=sink]
+
+
+    fl -> {tf gz}
+    xb -> {hl tl}
+    mq -> {tf fl}
+    px -> {hl tm}
+    dp -> {xv}
+    broadcaster -> {js ng lb gr}
+    ql -> {rx}
+    gk -> {hm}
+    vp -> {vf sn}
+    fp -> {xb}
+    lr -> {ss rm dc js gk dp bq}
+    xl -> {gx lr}
+    xx -> {hb}
+    cb -> {jg}
+    hl -> {nj lb tl xx hb fp mf}
+    vr -> {tf hq}
+    bq -> {gk}
+    jg -> {qn}
+    hb -> {qk}
+    qk -> {hs hl}
+    gz -> {tf}
+    rm -> {hj}
+    tf -> {cb jg fz gr zj qn kb}
+    qn -> {td}
+    js -> {lr dc}
+    qb -> {nc}
+    zj -> {vr}
+    td -> {tf zj}
+    tl -> {kg}
+    gx -> {lr}
+    hm -> {lr rd}
+    fh -> {ql}
+    nj -> {xx}
+    hq -> {kb tf}
+    kg -> {px hl}
+    dc -> {dp}
+    vf -> {th sn}
+    mf -> {ql}
+    tm -> {hl}
+    fz -> {ql}
+    xd -> {tn sn}
+    ng -> {vp sn}
+    th -> {qb}
+    rd -> {xl lr}
+    bt -> {xd sn}
+    tv -> {sn}
+    nl -> {bt}
+    hs -> {fp hl}
+    xv -> {rm lr}
+    tn -> {sn tv}
+    hj -> {lr bq}
+    ss -> {ql}
+    sd -> {nl}
+    sn -> {sd fh th qb nl ng nc}
+    kb -> {mq}
+    lb -> {nj hl}
+    gr -> {tf cb}
+    nc -> {sd}
+}
