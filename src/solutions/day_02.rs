@@ -37,7 +37,7 @@ impl Game {
                 .captures(game)
                 .unwrap()["id"],
         )
-            .unwrap();
+        .unwrap();
 
         let max_draw: FxHashMap<_, _> = Regex::new(r"(\d+ (?:red|green|blue))")
             .unwrap()
