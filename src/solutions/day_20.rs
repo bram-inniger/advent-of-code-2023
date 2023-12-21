@@ -68,9 +68,7 @@ fn push_button(modules: &mut FxHashMap<&str, Module>, cycle_module: &str) -> Pul
         pulse: Pulse::Low,
     });
 
-    while queue.is_empty().not() {
-        let signal = queue.pop_front().unwrap();
-
+    while let Some(signal) = queue.pop_front() {
         if signal.destination == "ql"
             && signal.source == cycle_module
             && matches!(signal.pulse, Pulse::High)

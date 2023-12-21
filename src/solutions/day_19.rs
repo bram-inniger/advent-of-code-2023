@@ -53,9 +53,7 @@ fn find_a_ranges(workflows: FxHashMap<&str, Workflow>) -> Vec<RatingsRange> {
     let mut queue = VecDeque::new();
     queue.push_back(rd_start);
 
-    while queue.is_empty().not() {
-        let rd = queue.pop_front().unwrap();
-
+    while let Some(rd) = queue.pop_front() {
         match rd.dest {
             "A" => a_ranges.push(rd.r_range),
             "R" => {}

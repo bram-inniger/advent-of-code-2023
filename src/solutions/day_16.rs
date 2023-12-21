@@ -85,8 +85,7 @@ impl Layout {
 
         to_visit.push_back((init.0, init.1));
 
-        while to_visit.is_empty().not() {
-            let (coord, direction) = to_visit.pop_front().unwrap();
+        while let Some((coord, direction)) = to_visit.pop_front() {
             if self.grid.contains_key(&coord).not() || seen.contains(&(coord, direction)) {
                 continue;
             }
