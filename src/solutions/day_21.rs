@@ -81,9 +81,7 @@ impl Garden {
 
         to_visit.push_back((self.start, 0));
 
-        while to_visit.is_empty().not() {
-            let (next_c, next_d) = to_visit.pop_front().unwrap();
-
+        while let Some((next_c, next_d)) = to_visit.pop_front() {
             if self.plots.contains(&next_c).not() || next_d > steps || seen.contains_key(&next_c) {
                 continue;
             };
