@@ -18,14 +18,8 @@ pub fn solve_2(garden: &[&str], steps: u64) -> u64 {
     // Solution based on https://github.com/villuna/aoc23/wiki/A-Geometric-solution-to-advent-of-code-2023,-day-21
     let even_all = visited.values().filter(|&&v| v % 2 == 1).count() as u64;
     let odd_all = visited.values().filter(|&&v| v % 2 == 0).count() as u64;
-    let even_corners = visited
-        .values()
-        .filter(|&&v| v % 2 == 0 && v > 65)
-        .count() as u64;
-    let odd_corners = visited
-        .values()
-        .filter(|&&v| v % 2 == 1 && v > 65)
-        .count() as u64;
+    let even_corners = visited.values().filter(|&&v| v % 2 == 0 && v > 65).count() as u64;
+    let odd_corners = visited.values().filter(|&&v| v % 2 == 1 && v > 65).count() as u64;
 
     // The input number "26_501_365" isn't randomly chosen,
     // it decomposes as "65 + (202300 * 131)".
@@ -40,10 +34,7 @@ pub fn solve_2(garden: &[&str], steps: u64) -> u64 {
     // and taking care of the edge condition at the corners yields the result.
     let n = (steps - (garden.init_w as u64 / 2)) / garden.init_h as u64;
 
-    (n + 1) * (n + 1) * even_all
-        + (n * n) * odd_all
-        - (n + 1) * odd_corners
-        + n * even_corners
+    (n + 1) * (n + 1) * even_all + (n * n) * odd_all - (n + 1) * odd_corners + n * even_corners
 }
 
 #[derive(Debug)]
@@ -72,7 +63,12 @@ impl Garden {
         let start = *plots.iter().find(|(_, &c)| c == 'S').unwrap().0;
         let plots = plots.into_keys().collect();
 
-        Garden { plots, start, init_h, init_w }
+        Garden {
+            plots,
+            start,
+            init_h,
+            init_w,
+        }
     }
 
     fn reachable(&self, steps: u8) -> FxHashMap<(i16, i16), u8> {
@@ -94,8 +90,8 @@ impl Garden {
                 ((next_c.0, next_c.1 + 1), next_d + 1),
                 ((next_c.0 - 1, next_c.1), next_d + 1),
             ]
-                .iter()
-                .for_each(|&x| to_visit.push_back(x));
+            .iter()
+            .for_each(|&x| to_visit.push_back(x));
         }
 
         seen

@@ -1,9 +1,9 @@
-use std::{env, process};
 use std::error::Error;
 use std::fs::File;
 use std::io::Write;
 use std::ops::Not;
 use std::str::FromStr;
+use std::{env, process};
 
 use chrono::Datelike;
 
