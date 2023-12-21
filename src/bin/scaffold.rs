@@ -107,12 +107,14 @@ fn append_file(path: &str, content: &str) -> Result<(), Box<dyn Error>> {
 const TEMPLATE: &str = "// use regex::Regex;
 // use std::str::FromStr;
 
-pub fn solve_1(X: Vec<&str>) -> u32 {
+pub fn solve_1(X: &[&str]) -> u32 {
     42
 }
 
 #[cfg(test)]
 mod tests {
+    use itertools::Itertools;
+
     use super::*;
 
     #[test]
@@ -123,16 +125,23 @@ mod tests {
             \"\",
             \"\",
             \"\",
+            \"\",
+            \"\",
+            \"\",
+            \"\",
+            \"\",
         ];
 
-        assert_eq!(42, solve_1(sample));
+        assert_eq!(42, solve_1(&sample));
     }
 
     #[test]
     fn {}_part_01_solution() {
-        let input = include_str!(\"../../inputs/{}.txt\").lines().collect();
+        let input = include_str!(\"../../inputs/{}.txt\")
+            .lines()
+            .collect_vec();
 
-        assert_eq!(0, solve_1(input));
+        assert_eq!(0, solve_1(&input));
     }
 }
 ";
