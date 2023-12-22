@@ -1,8 +1,9 @@
 use std::cmp::Ordering;
+use std::collections::VecDeque;
 use std::str::FromStr;
 
 use itertools::Itertools;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 type Label = usize;
 
@@ -13,15 +14,26 @@ const GROUND_H: LabeledHeight = LabeledHeight {
 };
 
 pub fn solve_1(snapshot: &[&str]) -> u32 {
-    Stack::new(snapshot).settle().count_disintegrate()
+    Stack::new(snapshot).count_disintegratable()
 }
 
-#[derive(Debug)]
+pub fn solve_2(snapshot: &[&str]) -> u32 {
+    let stack = Stack::new(snapshot);
+
+    stack
+        .bricks
+        .iter()
+        .map(|b| b.label)
+        .map(|b| stack.clone().chain_reaction(b))
+        .sum()
+}
+
+#[derive(Debug, Clone)]
 struct Stack {
     bricks: Vec<Brick>,
     planar_points: FxHashMap<PlaneCoord, LabeledHeight>,
-    leans_upon: FxHashMap<Label, Vec<Label>>,
-    leaned_upon_by: FxHashMap<Label, Vec<Label>>,
+    leans_upon: FxHashMap<Label, FxHashSet<Label>>,
+    leaned_upon_by: FxHashMap<Label, FxHashSet<Label>>,
 }
 
 impl Stack {
@@ -49,15 +61,18 @@ impl Stack {
             .collect_vec();
         bricks.sort();
 
-        Self {
+        let mut stack = Self {
             bricks,
             planar_points: Default::default(),
             leans_upon: Default::default(),
             leaned_upon_by: Default::default(),
-        }
+        };
+
+        stack.settle();
+        stack
     }
 
-    fn settle(&mut self) -> &Self {
+    fn settle(&mut self) {
         for brick in &mut self.bricks {
             // For every x,y, find the drop distance of Z
             let z_drop = Self::x_y_iter(brick)
@@ -69,17 +84,19 @@ impl Stack {
 
             // For every x,y, find whether we lean on another brick (has z value new_z-1),
             // and put them in a Vec after running "unique" for de-duplication, if we lean across multiple cubes
-            let leaning_upon = Self::x_y_iter(brick)
+            let leaning_upon: FxHashSet<_> = Self::x_y_iter(brick)
                 .map(|p| self.planar_points.get(&p).unwrap_or(&GROUND_H))
                 .filter(|&lh| lh.z == brick.z.0 - 1)
                 .map(|lh| lh.label)
-                .unique()
-                .collect_vec();
+                .collect();
 
             // Update the map leaned_upon_by for every brick in the collection above, adding this one
-            leaning_upon
-                .iter()
-                .for_each(|&l| self.leaned_upon_by.entry(l).or_default().push(brick.label));
+            leaning_upon.iter().for_each(|&l| {
+                self.leaned_upon_by
+                    .entry(l)
+                    .or_default()
+                    .insert(brick.label);
+            });
 
             // Update the map leans_upon for this brick with the collection above
             self.leans_upon.insert(brick.label, leaning_upon);
@@ -93,11 +110,9 @@ impl Stack {
                 self.planar_points.insert(p, lh);
             })
         }
-
-        self
     }
 
-    fn count_disintegrate(&self) -> u32 {
+    fn count_disintegratable(&self) -> u32 {
         // For every brick, count all that either:
         // - have no bricks leaning on them
         // - have only bricks leaning on them that themselves lean on at least 2 bricks
@@ -111,13 +126,40 @@ impl Stack {
             .count() as u32
     }
 
+    fn chain_reaction(mut self, init_brick: Label) -> u32 {
+        let mut falling = 0;
+        let mut to_remove: VecDeque<Label> = VecDeque::new();
+        to_remove.push_back(init_brick);
+
+        while let Some(brick) = to_remove.pop_front() {
+            // When removing a brick, check all bricks that were leaning on it
+            if let Some(leaned_upon) = self.leaned_upon_by.get_mut(&brick) {
+                for leaning in leaned_upon.iter() {
+                    // For every brick leaning on it, discard the removed brick
+                    let leaning_on = self.leans_upon.get_mut(leaning).unwrap();
+                    leaning_on.remove(&brick);
+
+                    // If we now find that the newly inspected brick is leaning on nothing else,
+                    // it starts falling, and it too should be removed,
+                    // repeating the procedure until no more bricks are falling
+                    if leaning_on.is_empty() {
+                        to_remove.push_front(*leaning);
+                        falling += 1;
+                    }
+                }
+            }
+        }
+
+        falling
+    }
+
     fn x_y_iter(brick: &Brick) -> impl Iterator<Item = PlaneCoord> + '_ {
         (brick.x.0..=brick.x.1)
             .flat_map(|x| (brick.y.0..=brick.y.1).map(move |y| PlaneCoord { x, y }))
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Hash)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 struct Brick {
     label: Label,
     x: (u16, u16),
@@ -137,7 +179,7 @@ impl PartialOrd for Brick {
     }
 }
 
-#[derive(Debug, Hash, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
 struct PlaneCoord {
     x: u16,
     y: u16,
@@ -177,5 +219,29 @@ mod tests {
             .collect_vec();
 
         assert_eq!(389, solve_1(&input));
+    }
+
+    #[test]
+    fn day_22_part_02_sample() {
+        let sample = vec![
+            "1,0,1~1,2,1",
+            "0,0,2~2,0,2",
+            "0,2,3~2,2,3",
+            "0,0,4~0,2,4",
+            "2,0,5~2,2,5",
+            "0,1,6~2,1,6",
+            "1,1,8~1,1,9",
+        ];
+
+        assert_eq!(7, solve_2(&sample));
+    }
+
+    #[test]
+    fn day_22_part_02_solution() {
+        let input = include_str!("../../inputs/day_22.txt")
+            .lines()
+            .collect_vec();
+
+        assert_eq!(70_609, solve_2(&input));
     }
 }
