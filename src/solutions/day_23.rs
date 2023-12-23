@@ -4,11 +4,14 @@ use itertools::Itertools;
 use rustc_hash::FxHashSet;
 
 type Coord = (usize, usize);
+type NeighbourFn = dyn Fn(&Trails, &Coord, &FxHashSet<Coord>) -> Vec<(Coord, u32)>;
 
 pub fn solve_1(trails: &[&str]) -> u32 {
-    let trails = Trails::new(trails);
+    Trails::new(trails).longest_path(&Trails::neighbours_sloped)
+}
 
-    trails.longest_path()
+pub fn solve_2(trails: &[&str]) -> u32 {
+    Trails::new(trails).longest_path(&Trails::neighbours_all)
 }
 
 #[derive(Debug)]
@@ -52,34 +55,41 @@ impl Trails {
         }
     }
 
-    fn longest_path(&self) -> u32 {
+    fn longest_path(&self, neighbours: &NeighbourFn) -> u32 {
         let mut hikes = vec![];
         let mut seen = FxHashSet::default();
 
-        Self::dfs(self, self.start, &mut seen, 0, &mut hikes);
+        Self::dfs(self, self.start, &mut seen, 0, &mut hikes, neighbours);
 
         hikes.into_iter().max().unwrap()
     }
 
-    fn dfs(&self, coord: Coord, seen: &mut FxHashSet<Coord>, distance: u32, hikes: &mut Vec<u32>) {
+    fn dfs(
+        &self,
+        coord: Coord,
+        seen: &mut FxHashSet<Coord>,
+        distance: u32,
+        hikes: &mut Vec<u32>,
+        neighbours: &NeighbourFn,
+    ) {
         if coord == self.end {
             hikes.push(distance)
         }
 
         seen.insert(coord);
 
-        for (neighbour, delta) in Self::neighbours(self, &coord, seen) {
-            Self::dfs(self, neighbour, seen, distance + delta, hikes);
+        for (neighbour, delta) in neighbours(self, &coord, seen) {
+            Self::dfs(self, neighbour, seen, distance + delta, hikes, neighbours);
             seen.remove(&neighbour);
         }
     }
 
-    fn neighbours(&self, coord: &Coord, seen: &FxHashSet<Coord>) -> Vec<(Coord, u32)> {
+    fn neighbours_sloped(&self, coord: &Coord, seen: &FxHashSet<Coord>) -> Vec<(Coord, u32)> {
         let mut neighbours = vec![];
 
         if coord.0 > 0 && seen.contains(&(coord.0 - 1, coord.1)).not() {
             match self.tiles[coord.1][coord.0 - 1] {
-                Tile::Paths => neighbours.push(((coord.0 - 1, coord.1),1)),
+                Tile::Paths => neighbours.push(((coord.0 - 1, coord.1), 1)),
                 Tile::SlopeLeft => neighbours.push(((coord.0 - 2, coord.1), 2)),
                 _ => {}
             }
@@ -104,6 +114,37 @@ impl Trails {
                 Tile::SlopeDown => neighbours.push(((coord.0, coord.1 + 2), 2)),
                 _ => {}
             }
+        }
+
+        neighbours
+    }
+
+    fn neighbours_all(&self, coord: &Coord, seen: &FxHashSet<Coord>) -> Vec<(Coord, u32)> {
+        let mut neighbours = vec![];
+
+        if coord.0 > 0
+            && seen.contains(&(coord.0 - 1, coord.1)).not()
+            && matches!(self.tiles[coord.1][coord.0 - 1], Tile::Forest).not()
+        {
+            neighbours.push(((coord.0 - 1, coord.1), 1))
+        }
+        if coord.1 > 0
+            && seen.contains(&(coord.0, coord.1 - 1)).not()
+            && matches!(self.tiles[coord.1 - 1][coord.0], Tile::Forest).not()
+        {
+            neighbours.push(((coord.0, coord.1 - 1), 1))
+        }
+        if coord.0 < self.width - 1
+            && seen.contains(&(coord.0 + 1, coord.1)).not()
+            && matches!(self.tiles[coord.1][coord.0 + 1], Tile::Forest).not()
+        {
+            neighbours.push(((coord.0 + 1, coord.1), 1))
+        }
+        if coord.1 < self.height - 1
+            && seen.contains(&(coord.0, coord.1 + 1)).not()
+            && matches!(self.tiles[coord.1 + 1][coord.0], Tile::Forest).not()
+        {
+            neighbours.push(((coord.0, coord.1 + 1), 1))
         }
 
         neighbours
@@ -164,5 +205,46 @@ mod tests {
             .collect_vec();
 
         assert_eq!(2_114, solve_1(&input));
+    }
+
+    #[test]
+    fn day_23_part_02_sample() {
+        let sample = vec![
+            "#.#####################",
+            "#.......#########...###",
+            "#######.#########.#.###",
+            "###.....#.>.>.###.#.###",
+            "###v#####.#v#.###.#.###",
+            "###.>...#.#.#.....#...#",
+            "###v###.#.#.#########.#",
+            "###...#.#.#.......#...#",
+            "#####.#.#.#######.#.###",
+            "#.....#.#.#.......#...#",
+            "#.#####.#.#.#########v#",
+            "#.#...#...#...###...>.#",
+            "#.#.#v#######v###.###v#",
+            "#...#.>.#...>.>.#.###.#",
+            "#####v#.#.###v#.#.###.#",
+            "#.....#...#...#.#.#...#",
+            "#.#########.###.#.#.###",
+            "#...###...#...#...#.###",
+            "###.###.#.###v#####v###",
+            "#...#...#.#.>.>.#.>.###",
+            "#.###.###.#.###.#.#v###",
+            "#.....###...###...#...#",
+            "#####################.#",
+        ];
+
+        assert_eq!(154, solve_2(&sample));
+    }
+
+    #[ignore = "correct, but very slow"]
+    #[test]
+    fn day_23_part_02_solution() {
+        let input = include_str!("../../inputs/day_23.txt")
+            .lines()
+            .collect_vec();
+
+        assert_eq!(6_322, solve_2(&input));
     }
 }
