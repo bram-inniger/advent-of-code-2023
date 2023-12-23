@@ -1,10 +1,11 @@
 use std::ops::Not;
 
-use itertools::Itertools;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
-type Coord = (usize, usize);
-type NeighbourFn = dyn Fn(&Trails, &Coord, &FxHashSet<Coord>) -> Vec<(Coord, u32)>;
+type Coord = (i16, i16);
+type NeighboursFn = dyn Fn(&Trails, Coord) -> Vec<Coord>;
+
+const DIRECTIONS: [(i16, i16); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
 
 pub fn solve_1(trails: &[&str]) -> u32 {
     Trails::new(trails).longest_path(&Trails::neighbours_sloped)
@@ -16,46 +17,41 @@ pub fn solve_2(trails: &[&str]) -> u32 {
 
 #[derive(Debug)]
 struct Trails {
-    tiles: Vec<Vec<Tile>>,
-    height: usize,
-    width: usize,
+    tiles: FxHashMap<Coord, Tile>,
     start: Coord,
     end: Coord,
 }
 
 impl Trails {
     fn new(tiles: &[&str]) -> Self {
+        let start = (1, 0);
+        let end = (tiles[0].len() as i16 - 2, tiles.len() as i16 - 1);
         let tiles = tiles
             .iter()
-            .map(|&l| {
-                l.chars()
-                    .map(|c| match c {
-                        '.' => Tile::Paths,
-                        '#' => Tile::Forest,
-                        '^' => Tile::SlopeUp,
-                        '>' => Tile::SlopeRight,
-                        'v' => Tile::SlopeDown,
-                        '<' => Tile::SlopeLeft,
-                        _ => unreachable!(),
-                    })
-                    .collect_vec()
+            .enumerate()
+            .flat_map(|(y, &l)| {
+                l.chars().enumerate().map(move |(x, c)| {
+                    (
+                        (x as i16, y as i16),
+                        match c {
+                            '.' => Tile::Paths,
+                            '#' => Tile::Forest,
+                            '^' => Tile::SlopeUp,
+                            '>' => Tile::SlopeRight,
+                            'v' => Tile::SlopeDown,
+                            '<' => Tile::SlopeLeft,
+                            _ => unreachable!(),
+                        },
+                    )
+                })
             })
-            .collect_vec();
-        let height = tiles.len();
-        let width = tiles[0].len();
-        let start = (1, 0);
-        let end = (width - 2, height - 1);
+            .filter(|(_, t)| matches!(t, Tile::Forest).not())
+            .collect();
 
-        Trails {
-            tiles,
-            height,
-            width,
-            start,
-            end,
-        }
+        Self { tiles, start, end }
     }
 
-    fn longest_path(&self, neighbours: &NeighbourFn) -> u32 {
+    fn longest_path(&self, neighbours: &NeighboursFn) -> u32 {
         let mut hikes = vec![];
         let mut seen = FxHashSet::default();
 
@@ -70,7 +66,7 @@ impl Trails {
         seen: &mut FxHashSet<Coord>,
         distance: u32,
         hikes: &mut Vec<u32>,
-        neighbours: &NeighbourFn,
+        neighbours: &NeighboursFn,
     ) {
         if coord == self.end {
             hikes.push(distance)
@@ -78,76 +74,32 @@ impl Trails {
 
         seen.insert(coord);
 
-        for (neighbour, delta) in neighbours(self, &coord, seen) {
-            Self::dfs(self, neighbour, seen, distance + delta, hikes, neighbours);
-            seen.remove(&neighbour);
+        for neighbour in neighbours(self, coord) {
+            if seen.contains(&neighbour).not() {
+                Self::dfs(self, neighbour, seen, distance + 1, hikes, neighbours);
+            }
+        }
+
+        seen.remove(&coord);
+    }
+
+    fn neighbours_sloped(&self, coord: Coord) -> Vec<Coord> {
+        match self.tiles[&coord] {
+            Tile::Paths => Self::neighbours_all(self, coord),
+            Tile::Forest => unreachable!(),
+            Tile::SlopeUp => vec![(coord.0, coord.1 - 1)],
+            Tile::SlopeRight => vec![(coord.0 + 1, coord.1)],
+            Tile::SlopeDown => vec![(coord.0, coord.1 + 1)],
+            Tile::SlopeLeft => vec![(coord.0 - 1, coord.1)],
         }
     }
 
-    fn neighbours_sloped(&self, coord: &Coord, seen: &FxHashSet<Coord>) -> Vec<(Coord, u32)> {
-        let mut neighbours = vec![];
-
-        if coord.0 > 0 && seen.contains(&(coord.0 - 1, coord.1)).not() {
-            match self.tiles[coord.1][coord.0 - 1] {
-                Tile::Paths => neighbours.push(((coord.0 - 1, coord.1), 1)),
-                Tile::SlopeLeft => neighbours.push(((coord.0 - 2, coord.1), 2)),
-                _ => {}
-            }
-        }
-        if coord.1 > 0 && seen.contains(&(coord.0, coord.1 - 1)).not() {
-            match self.tiles[coord.1 - 1][coord.0] {
-                Tile::Paths => neighbours.push(((coord.0, coord.1 - 1), 1)),
-                Tile::SlopeUp => neighbours.push(((coord.0, coord.1 - 2), 2)),
-                _ => {}
-            }
-        }
-        if coord.0 < self.width - 1 && seen.contains(&(coord.0 + 1, coord.1)).not() {
-            match self.tiles[coord.1][coord.0 + 1] {
-                Tile::Paths => neighbours.push(((coord.0 + 1, coord.1), 1)),
-                Tile::SlopeRight => neighbours.push(((coord.0 + 2, coord.1), 2)),
-                _ => {}
-            }
-        }
-        if coord.1 < self.height - 1 && seen.contains(&(coord.0, coord.1 + 1)).not() {
-            match self.tiles[coord.1 + 1][coord.0] {
-                Tile::Paths => neighbours.push(((coord.0, coord.1 + 1), 1)),
-                Tile::SlopeDown => neighbours.push(((coord.0, coord.1 + 2), 2)),
-                _ => {}
-            }
-        }
-
-        neighbours
-    }
-
-    fn neighbours_all(&self, coord: &Coord, seen: &FxHashSet<Coord>) -> Vec<(Coord, u32)> {
-        let mut neighbours = vec![];
-
-        if coord.0 > 0
-            && seen.contains(&(coord.0 - 1, coord.1)).not()
-            && matches!(self.tiles[coord.1][coord.0 - 1], Tile::Forest).not()
-        {
-            neighbours.push(((coord.0 - 1, coord.1), 1))
-        }
-        if coord.1 > 0
-            && seen.contains(&(coord.0, coord.1 - 1)).not()
-            && matches!(self.tiles[coord.1 - 1][coord.0], Tile::Forest).not()
-        {
-            neighbours.push(((coord.0, coord.1 - 1), 1))
-        }
-        if coord.0 < self.width - 1
-            && seen.contains(&(coord.0 + 1, coord.1)).not()
-            && matches!(self.tiles[coord.1][coord.0 + 1], Tile::Forest).not()
-        {
-            neighbours.push(((coord.0 + 1, coord.1), 1))
-        }
-        if coord.1 < self.height - 1
-            && seen.contains(&(coord.0, coord.1 + 1)).not()
-            && matches!(self.tiles[coord.1 + 1][coord.0], Tile::Forest).not()
-        {
-            neighbours.push(((coord.0, coord.1 + 1), 1))
-        }
-
-        neighbours
+    fn neighbours_all(&self, coord: Coord) -> Vec<Coord> {
+        DIRECTIONS
+            .iter()
+            .map(|d| (coord.0 + d.0, coord.1 + d.1))
+            .filter(|c| self.tiles.contains_key(c))
+            .collect()
     }
 }
 
