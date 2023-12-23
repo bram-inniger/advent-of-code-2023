@@ -5,13 +5,13 @@ use rustc_hash::{FxHashMap, FxHashSet};
 type Coord = (i16, i16);
 type NeighboursFn = dyn Fn(&Trails, Coord) -> Vec<Coord>;
 
-const DIRECTIONS: [(i16, i16); 4] = [(1, 0), (0, 1), (-1, 0), (0, -1)];
+const DIRECTIONS: [(i16, i16); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
-pub fn solve_1(trails: &[&str]) -> u32 {
+pub fn solve_1(trails: &[&str]) -> u16 {
     Trails::new(trails).longest_path(&Trails::neighbours_sloped)
 }
 
-pub fn solve_2(trails: &[&str]) -> u32 {
+pub fn solve_2(trails: &[&str]) -> u16 {
     Trails::new(trails).longest_path(&Trails::neighbours_all)
 }
 
@@ -30,67 +30,63 @@ impl Trails {
             .iter()
             .enumerate()
             .flat_map(|(y, &l)| {
-                l.chars().enumerate().map(move |(x, c)| {
-                    (
-                        (x as i16, y as i16),
-                        match c {
-                            '.' => Tile::Paths,
-                            '#' => Tile::Forest,
-                            '^' => Tile::SlopeUp,
-                            '>' => Tile::SlopeRight,
-                            'v' => Tile::SlopeDown,
-                            '<' => Tile::SlopeLeft,
-                            _ => unreachable!(),
-                        },
-                    )
-                })
+                l.chars()
+                    .enumerate()
+                    .filter(|(_, c)| c != &'#')
+                    .map(move |(x, c)| {
+                        (
+                            (x as i16, y as i16),
+                            match c {
+                                '.' => Tile::Paths,
+                                '^' => Tile::Slope(DIRECTIONS[0]),
+                                '>' => Tile::Slope(DIRECTIONS[1]),
+                                'v' => Tile::Slope(DIRECTIONS[2]),
+                                '<' => Tile::Slope(DIRECTIONS[3]),
+                                _ => unreachable!(),
+                            },
+                        )
+                    })
             })
-            .filter(|(_, t)| matches!(t, Tile::Forest).not())
             .collect();
 
         Self { tiles, start, end }
     }
 
-    fn longest_path(&self, neighbours: &NeighboursFn) -> u32 {
-        let mut hikes = vec![];
+    fn longest_path(&self, neighbours: &NeighboursFn) -> u16 {
         let mut seen = FxHashSet::default();
 
-        Self::dfs(self, self.start, &mut seen, 0, &mut hikes, neighbours);
-
-        hikes.into_iter().max().unwrap()
+        Self::dfs(self, self.start, &mut seen, 0, neighbours)
     }
 
     fn dfs(
         &self,
         coord: Coord,
         seen: &mut FxHashSet<Coord>,
-        distance: u32,
-        hikes: &mut Vec<u32>,
+        distance: u16,
         neighbours: &NeighboursFn,
-    ) {
+    ) -> u16 {
         if coord == self.end {
-            hikes.push(distance)
+            return distance;
         }
 
+        let mut longest = 0;
         seen.insert(coord);
 
         for neighbour in neighbours(self, coord) {
             if seen.contains(&neighbour).not() {
-                Self::dfs(self, neighbour, seen, distance + 1, hikes, neighbours);
+                longest = longest.max(Self::dfs(self, neighbour, seen, distance + 1, neighbours));
             }
         }
 
         seen.remove(&coord);
+
+        longest
     }
 
     fn neighbours_sloped(&self, coord: Coord) -> Vec<Coord> {
         match self.tiles[&coord] {
             Tile::Paths => Self::neighbours_all(self, coord),
-            Tile::Forest => unreachable!(),
-            Tile::SlopeUp => vec![(coord.0, coord.1 - 1)],
-            Tile::SlopeRight => vec![(coord.0 + 1, coord.1)],
-            Tile::SlopeDown => vec![(coord.0, coord.1 + 1)],
-            Tile::SlopeLeft => vec![(coord.0 - 1, coord.1)],
+            Tile::Slope(delta) => vec![(coord.0 + delta.0, coord.1 + delta.1)],
         }
     }
 
@@ -106,11 +102,7 @@ impl Trails {
 #[derive(Debug)]
 enum Tile {
     Paths,
-    Forest,
-    SlopeUp,
-    SlopeRight,
-    SlopeDown,
-    SlopeLeft,
+    Slope(Coord),
 }
 
 #[cfg(test)]
