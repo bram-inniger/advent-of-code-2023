@@ -1,18 +1,24 @@
+use std::collections::VecDeque;
 use std::ops::Not;
 
 use rustc_hash::{FxHashMap, FxHashSet};
 
 type Coord = (i16, i16);
-type NeighboursFn = dyn Fn(&Trails, Coord) -> Vec<Coord>;
+type Weight = u16;
+type NeighboursFn = dyn Fn(&FxHashMap<Coord, Tile>, &Coord, &FxHashSet<Coord>) -> Vec<Coord>;
 
 const DIRECTIONS: [(i16, i16); 4] = [(0, -1), (1, 0), (0, 1), (-1, 0)];
 
 pub fn solve_1(trails: &[&str]) -> u16 {
-    Trails::new(trails).longest_path(&Trails::neighbours_sloped)
+    Trails::new(trails)
+        .to_graph(&Graph::neighbours_sloped)
+        .longest_path()
 }
 
 pub fn solve_2(trails: &[&str]) -> u16 {
-    Trails::new(trails).longest_path(&Trails::neighbours_all)
+    Trails::new(trails)
+        .to_graph(&Graph::neighbours_all)
+        .longest_path()
 }
 
 #[derive(Debug)]
@@ -52,50 +58,117 @@ impl Trails {
         Self { tiles, start, end }
     }
 
-    fn longest_path(&self, neighbours: &NeighboursFn) -> u16 {
-        let mut seen = FxHashSet::default();
+    fn to_graph(&self, neighbours: &NeighboursFn) -> Graph {
+        Graph::build(self, neighbours)
+    }
+}
 
-        Self::dfs(self, self.start, &mut seen, 0, neighbours)
+#[derive(Debug)]
+struct Graph {
+    edges: FxHashMap<Coord, Vec<(Coord, Weight)>>,
+    start: Coord,
+    end: Coord,
+}
+
+impl Graph {
+    fn build(trails: &Trails, neighbours: &NeighboursFn) -> Self {
+        let start = trails.start;
+        let end = trails.end;
+
+        let mut vertices: FxHashSet<Coord> = trails
+            .tiles
+            .keys()
+            .filter(|&c| Self::neighbours_count(&trails.tiles, c) > 2)
+            .copied()
+            .collect();
+        vertices.insert(start);
+        vertices.insert(end);
+
+        let edges: FxHashMap<_, _> = vertices
+            .iter()
+            .map(|v| (*v, Self::edges(*v, &vertices, &trails.tiles, neighbours)))
+            .collect();
+
+        Self { edges, start, end }
     }
 
-    fn dfs(
-        &self,
-        coord: Coord,
-        seen: &mut FxHashSet<Coord>,
-        distance: u16,
+    fn edges(
+        vertex: Coord,
+        vertices: &FxHashSet<Coord>,
+        tiles: &FxHashMap<Coord, Tile>,
         neighbours: &NeighboursFn,
-    ) -> u16 {
-        if coord == self.end {
-            return distance;
-        }
+    ) -> Vec<(Coord, Weight)> {
+        let mut edges = vec![];
+        let mut to_visit = VecDeque::new();
+        let mut seen = FxHashSet::default();
+        to_visit.push_back((vertex, 0));
 
-        let mut longest = 0;
-        seen.insert(coord);
+        while let Some((c, w)) = to_visit.pop_front() {
+            seen.insert(c);
 
-        for neighbour in neighbours(self, coord) {
-            if seen.contains(&neighbour).not() {
-                longest = longest.max(Self::dfs(self, neighbour, seen, distance + 1, neighbours));
+            if c != vertex && vertices.contains(&c) {
+                edges.push((c, w));
+                continue;
+            }
+
+            for neighbour in neighbours(tiles, &c, &seen) {
+                to_visit.push_back((neighbour, w + 1));
             }
         }
 
-        seen.remove(&coord);
-
-        longest
+        edges
     }
 
-    fn neighbours_sloped(&self, coord: Coord) -> Vec<Coord> {
-        match self.tiles[&coord] {
-            Tile::Paths => Self::neighbours_all(self, coord),
+    fn neighbours_sloped(
+        tiles: &FxHashMap<Coord, Tile>,
+        coord: &Coord,
+        seen: &FxHashSet<Coord>,
+    ) -> Vec<Coord> {
+        match tiles[&coord] {
+            Tile::Paths => Self::neighbours_all(tiles, coord, seen),
             Tile::Slope(delta) => vec![(coord.0 + delta.0, coord.1 + delta.1)],
         }
     }
 
-    fn neighbours_all(&self, coord: Coord) -> Vec<Coord> {
+    fn neighbours_all(
+        tiles: &FxHashMap<Coord, Tile>,
+        coord: &Coord,
+        seen: &FxHashSet<Coord>,
+    ) -> Vec<Coord> {
         DIRECTIONS
             .iter()
             .map(|d| (coord.0 + d.0, coord.1 + d.1))
-            .filter(|c| self.tiles.contains_key(c))
+            .filter(|c| tiles.contains_key(c))
+            .filter(|c| seen.contains(c).not())
             .collect()
+    }
+
+    fn neighbours_count(tiles: &FxHashMap<Coord, Tile>, coord: &Coord) -> usize {
+        Self::neighbours_all(tiles, coord, &FxHashSet::default()).len()
+    }
+
+    fn longest_path(&self) -> u16 {
+        let mut seen = FxHashSet::default();
+
+        Self::dfs(self, self.start, &mut seen, 0)
+    }
+
+    fn dfs(&self, vertex: Coord, seen: &mut FxHashSet<Coord>, distance: u16) -> u16 {
+        if vertex == self.end {
+            return distance;
+        }
+
+        let mut longest = 0;
+        seen.insert(vertex);
+
+        for (neighbour, weight) in &self.edges[&vertex] {
+            if seen.contains(neighbour).not() {
+                longest = longest.max(Self::dfs(self, *neighbour, seen, distance + weight));
+            }
+        }
+
+        seen.remove(&vertex);
+        longest
     }
 }
 
