@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 use std::ops::Not;
 
+use itertools::Itertools;
 use rustc_hash::{FxHashMap, FxHashSet};
 
 type Coord = (i16, i16);
@@ -65,9 +66,9 @@ impl Trails {
 
 #[derive(Debug)]
 struct Graph {
-    edges: FxHashMap<Coord, Vec<(Coord, Weight)>>,
-    start: Coord,
-    end: Coord,
+    edges: Vec<Vec<(usize, Weight)>>,
+    start: usize,
+    end: usize,
 }
 
 impl Graph {
@@ -89,7 +90,26 @@ impl Graph {
             .map(|v| (*v, Self::edges(*v, &vertices, &trails.tiles, neighbours)))
             .collect();
 
-        Self { edges, start, end }
+        let vertices: Vec<_> = edges.keys().copied().collect();
+        let vertices_lookup: FxHashMap<_, _> =
+            vertices.iter().enumerate().map(|(k, v)| (v, k)).collect();
+        let better_edges: Vec<Vec<(usize, Weight)>> = vertices
+            .iter()
+            .map(|v| {
+                edges[v]
+                    .iter()
+                    .map(|(c, w)| (vertices_lookup[c], *w))
+                    .collect_vec()
+            })
+            .collect_vec();
+        let better_start = vertices_lookup[&start];
+        let better_end = vertices_lookup[&end];
+
+        Self {
+            edges: better_edges,
+            start: better_start,
+            end: better_end,
+        }
     }
 
     fn edges(
@@ -148,26 +168,26 @@ impl Graph {
     }
 
     fn longest_path(&self) -> u16 {
-        let mut seen = FxHashSet::default();
+        let mut seen = vec![false; self.edges.len()];
 
         Self::dfs(self, self.start, &mut seen, 0)
     }
 
-    fn dfs(&self, vertex: Coord, seen: &mut FxHashSet<Coord>, distance: u16) -> u16 {
+    fn dfs(&self, vertex: usize, seen: &mut Vec<bool>, distance: u16) -> u16 {
         if vertex == self.end {
             return distance;
         }
 
         let mut longest = 0;
-        seen.insert(vertex);
+        seen[vertex] = true;
 
-        for (neighbour, weight) in &self.edges[&vertex] {
-            if seen.contains(neighbour).not() {
+        for (neighbour, weight) in &self.edges[vertex] {
+            if seen[*neighbour].not() {
                 longest = longest.max(Self::dfs(self, *neighbour, seen, distance + weight));
             }
         }
 
-        seen.remove(&vertex);
+        seen[vertex] = false;
         longest
     }
 }
@@ -255,7 +275,6 @@ mod tests {
         assert_eq!(154, solve_2(&sample));
     }
 
-    #[ignore = "correct, but very slow"]
     #[test]
     fn day_23_part_02_solution() {
         let input = include_str!("../../inputs/day_23.txt")
