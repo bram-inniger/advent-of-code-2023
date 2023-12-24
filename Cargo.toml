@@ -25,5 +25,5 @@ rustc-hash = "1.1.0"
 criterion = { version = "0.5.1", features = ["html_reports"] }
 
 [[bench]]
-name = "day_22_bench"
+name = "day_23_bench"
 harness = false
