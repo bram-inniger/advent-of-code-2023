@@ -1,10 +1,13 @@
 use std::str::FromStr;
 
 use regex::Regex;
+use z3::ast::{Ast, Int};
 
 pub fn solve_1(trajectories: &[&str], boundary: &(f64, f64)) -> u16 {
-    let hail = Hail::new(trajectories);
-    hail.cross_all(boundary)
+    Hail::new(trajectories).cross_all(boundary)
+}
+pub fn solve_2(trajectories: &[&str]) -> i64 {
+    Hail::new(trajectories).find_rock().init_sum()
 }
 
 #[derive(Debug)]
@@ -14,7 +17,10 @@ struct Hail {
 
 impl Hail {
     fn new(trajectories: &[&str]) -> Self {
-        let trajectories = trajectories.iter().map(|t| Trajectory::new(t)).collect();
+        let trajectories = trajectories
+            .iter()
+            .map(|t| Trajectory::from_str(t))
+            .collect();
         Self { trajectories }
     }
 
@@ -30,6 +36,41 @@ impl Hail {
             })
             .count() as u16
     }
+
+    fn find_rock(&self) -> Trajectory {
+        let ctx = z3::Context::new(&z3::Config::new());
+        let s = z3::Solver::new(&ctx);
+
+        let [cpx, cpy, cpz, cvx, cvy, cvz] =
+            ["cpx", "cpy", "cpz", "cvx", "cvy", "cvz"].map(|name| Int::new_const(&ctx, name));
+        let c0 = Int::from_i64(&ctx, 0);
+
+        for (idx, trajectory) in self.trajectories.iter().enumerate() {
+            let &Trajectory {
+                position: (px, py, pz),
+                velocity: (vx, vy, vz),
+                ..
+            } = trajectory;
+
+            let [px, py, pz, vx, vy, vz] = [px, py, pz, vx, vy, vz].map(|i| Int::from_i64(&ctx, i));
+            let t = Int::new_const(&ctx, format!("t{idx}"));
+
+            s.assert(&t.ge(&c0));
+            s.assert(&((&px + &vx * &t)._eq(&(&cpx + &cvx * &t))));
+            s.assert(&((&py + &vy * &t)._eq(&(&cpy + &cvy * &t))));
+            s.assert(&((&pz + &vz * &t)._eq(&(&cpz + &cvz * &t))));
+        }
+
+        if s.check() != z3::SatResult::Sat {
+            unreachable!()
+        }
+
+        let model = s.get_model().unwrap();
+        let [px, py, pz, vx, vy, vz] = [&cpx, &cpy, &cpz, &cvx, &cvy, &cvz]
+            .map(|v| model.get_const_interp(v).unwrap().as_i64().unwrap());
+
+        Trajectory::from_tuples((px, py, pz), (vx, vy, vz))
+    }
 }
 
 #[derive(Debug)]
@@ -41,7 +82,7 @@ struct Trajectory {
 }
 
 impl Trajectory {
-    fn new(trajectory: &str) -> Self {
+    fn from_str(trajectory: &str) -> Self {
         let re = Regex::new(r"^(?<px>-?\d+), +(?<py>-?\d+), +(?<pz>-?\d+) @ +(?<vx>-?\d+), +(?<vy>-?\d+), +(?<vz>-?\d+)$")
             .unwrap();
         let caps = re.captures(trajectory).unwrap();
@@ -50,6 +91,10 @@ impl Trajectory {
 
         let position = (r("px"), r("py"), r("pz"));
         let velocity = (r("vx"), r("vy"), r("vz"));
+
+        Self::from_tuples(position, velocity)
+    }
+    fn from_tuples(position: (i64, i64, i64), velocity: (i64, i64, i64)) -> Self {
         let slope = velocity.1 as f64 / velocity.0 as f64;
         let offset = position.1 as f64 - position.0 as f64 * slope;
 
@@ -80,6 +125,10 @@ impl Trajectory {
     fn crosses_forward(&self, crossing: (f64, f64)) -> bool {
         (crossing.0 > self.position.0 as f64 && self.velocity.0 > 0)
             || (crossing.0 < self.position.0 as f64 && self.velocity.0 < 0)
+    }
+
+    fn init_sum(&self) -> i64 {
+        self.position.0 + self.position.1 + self.position.2
     }
 }
 
@@ -112,5 +161,27 @@ mod tests {
             16_589,
             solve_1(&input, &(200_000_000_000_000.0, 400_000_000_000_000.0))
         );
+    }
+
+    #[test]
+    fn day_24_part_02_sample() {
+        let sample = vec![
+            "19, 13, 30 @ -2,  1, -2",
+            "18, 19, 22 @ -1, -1, -2",
+            "20, 25, 34 @ -2, -2, -4",
+            "12, 31, 28 @ -1, -2, -1",
+            "20, 19, 15 @  1, -5, -3",
+        ];
+
+        assert_eq!(47, solve_2(&sample));
+    }
+
+    #[test]
+    fn day_24_part_02_solution() {
+        let input = include_str!("../../inputs/day_24.txt")
+            .lines()
+            .collect_vec();
+
+        assert_eq!(781_390_555_762_385, solve_2(&input));
     }
 }
