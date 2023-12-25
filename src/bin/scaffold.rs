@@ -104,8 +104,10 @@ fn append_file(path: &str, content: &str) -> Result<(), Box<dyn Error>> {
     Ok(())
 }
 
-const TEMPLATE: &str = "// use regex::Regex;
+const TEMPLATE: &str = "\
 // use std::str::FromStr;
+
+// use regex::Regex;
 
 pub fn solve_1(X: &[&str]) -> u32 {
     42
