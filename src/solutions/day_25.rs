@@ -9,6 +9,13 @@ pub fn solve_1(diagram: &[&str], disconnects: &[(&str, &str)]) -> u32 {
     diagram.group_len(disconnects[0].0) * diagram.group_len(disconnects[0].1)
 }
 
+pub fn solve_2() {
+    // You supply all fifty stars and restart global snow production!
+    //
+    // As you reach the edge of Snow Island,
+    // you can already tell from way up here that everyone will have a white Christmas this year after all.
+}
+
 #[derive(Debug)]
 struct Diagram<'a> {
     wires: FxHashMap<&'a str, FxHashSet<&'a str>>,
@@ -98,5 +105,15 @@ mod tests {
         let disconnects = vec![("fxr", "fzb"), ("vgk", "mbq"), ("nmv", "thl")];
 
         assert_eq!(600_369, solve_1(&input, &disconnects));
+    }
+
+    #[test]
+    fn day_25_part_02_sample() {
+        solve_2()
+    }
+
+    #[test]
+    fn day_25_part_02_solution() {
+        solve_2()
     }
 }
