@@ -27,8 +27,8 @@ pub fn solve_1(modules: &[&str]) -> u64 {
 ///
 /// Re-applying the solution of Day 8, and applying LCM on the cycle lengths of these loop yields the solution.
 ///
-/// The graph source can be found [here](../../problems/other/day_20.dot)
-/// The rendered graph can be found [here](../../problems/other/day_20.png)
+/// The graph source can be found [here](../../graphviz/day_20.dot)
+/// The rendered graph can be found [here](../../graphviz/day_20.png)
 ///
 /// The broadcast module and the 4 cycle start modules are shown in light blue.
 /// The "rx" module, its source and the 4 modules finishing up the cycles are shown in light green.
