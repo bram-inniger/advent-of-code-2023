@@ -7,6 +7,7 @@
           <resourceRoots>
             <path value="file://$PROJECT_DIR$/inputs" />
             <path value="file://$PROJECT_DIR$/problems" />
+            <path value="file://$PROJECT_DIR$/graphviz" />
           </resourceRoots>
         </entryData>
       </entry>
