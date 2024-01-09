@@ -6,9 +6,8 @@ Repository to store solutions for [Advent of Code](https://adventofcode.com/2023
 
 ## About
 
-Every problem is described in under ["problems"](problems).
-Every input is given in ["inputs"](inputs).
-The actual problem solutions (both parts, including tests) can be found under ["src/solutions"](src/solutions).
+To run the solutions, place personal inputs under ["inputs"](inputs).
+The solutions (both parts, including tests) can be found under ["src/solutions"](src/solutions).
 
 ## How to run
 
